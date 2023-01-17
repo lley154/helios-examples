@@ -5,7 +5,6 @@ import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
-
 import {
   Address, 
   bytesToHex, 
@@ -17,6 +16,12 @@ import {
   Tx, 
   UTxO} from "@hyperionbt/helios";
 
+declare global {
+  interface Window {
+      cardano:any;
+  }
+}
+
 const Home: NextPage = () => {
 
   const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
@@ -25,6 +30,7 @@ const Home: NextPage = () => {
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
+  
 
   useEffect(() => {
     const checkWallet = async () => {
