@@ -115,11 +115,11 @@ const Home: NextPage = () => {
 
     // get the UTXOs from wallet, but they are in CBOR format, so need to convert them
     const cborUtxos = await walletAPI.getUtxos(bytesToHex(adaAmountVal.toCbor()));
-    let Utxos = [];
+    let utxos = [];
 
     for (const cborUtxo of cborUtxos) {
       const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      Utxos.push(_utxo);
+      utxos.push(_utxo);
     }
 
     // Get the change address from the wallet
@@ -128,10 +128,7 @@ const Home: NextPage = () => {
 
     // Start building the transaction
     const tx = new Tx();
-
-    for (const utxo of Utxos) {
-        tx.addInput(utxo);
-    }
+    tx.addInputs(utxos);
 
     // Add the destination address and the amount of Ada to send as an output
     tx.addOutput(new TxOutput(Address.fromBech32(address), adaAmountVal));
@@ -181,7 +178,7 @@ const Home: NextPage = () => {
                 <label>Nami</label>
             </p>
           </div>
-            {walletIsEnabled && <div className={styles.border}><WalletInfo walletInfo={walletInfo}/></div>}
+            {!tx.txId && walletIsEnabled && <div className={styles.border}><WalletInfo walletInfo={walletInfo}/></div>}
             {tx.txId && <div className={styles.border}><b>Transaction Success!!!</b>
             <p>TxId &nbsp;&nbsp;<a href={"https://preprod.cexplorer.io/tx/" + tx.txId} target="_blank" rel="noopener noreferrer" >{tx.txId}</a></p>
             <p>Please wait until the transaction is confirmed on the blockchain and reload this page before doing another transaction</p>
