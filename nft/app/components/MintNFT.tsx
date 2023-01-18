@@ -2,15 +2,16 @@ import { useState } from 'react'
 
 const mintNFT = ({ onMintNFT } : any) => {
 
-    const [address, setAddress] = useState('')
-    const [name, setName] = useState('')
+    const [address, setAddress] = useState('');
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [imgPath, setImgPath] = useState('');
 
     const onSubmit = (e : any) => {
         
         e.preventDefault() // prevent full page refresh
-        onMintNFT([address, name])
+        onMintNFT([address, name, description, imgPath])
     }
-    
 
     return (
 
@@ -31,9 +32,28 @@ const mintNFT = ({ onMintNFT } : any) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 />
+                <p></p>
+            </div>
+            <div>
+                <b>NFT Description</b> 
+                <br></br>
+                <input name='description' type='text' id='description' placeholder='Enter NFT Description' 
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                />
+                <p></p>
+            </div>
+            <div>
+                <b>NFT Image Path</b> 
+                <br></br>
+                <input name='imgPath' type='text' id='imgPath' placeholder='Enter NFT Image Path' 
+                value={imgPath}
+                onChange={(e) => setImgPath(e.target.value)}
+                />
+                <p></p>
             </div>
             <br></br>                   
-            <input type='submit' value='Transfer Ada'/>
+            <input type='submit' value='Mint NFT'/>
         </form>
     )
 }

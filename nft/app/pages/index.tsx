@@ -122,6 +122,8 @@ const Home: NextPage = () => {
 
     const address = params[0];
     const name = params[1];
+    const description = params[2];
+    const imgPath = params[3];
     const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
 
     // get the UTXOs from wallet, but they are in CBOR format, so need to convert them
@@ -218,6 +220,20 @@ const Home: NextPage = () => {
       await fetch(networkParamsUrl)
           .then(response => response.json())
     )
+
+    // Attached the metadata for the minting transaction
+    tx.addMetadata(721, {"map": [[mintProgram.mintingPolicyHash.hex, {"map": [[name, 
+                                      {
+                                        "map": [["name", name], 
+                                                ["description", description],
+                                                ["image", imgPath]
+                                              ]
+                                      }
+                                  ]]}
+                                ]]
+                        }
+                  );
+
     console.log("tx before final", tx.dump());
 
     // Send any change back to the buyer
