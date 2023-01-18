@@ -5,12 +5,12 @@ const mintNFT = ({ onMintNFT } : any) => {
     const [address, setAddress] = useState('');
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [imgPath, setImgPath] = useState('');
+    const [img, setImg] = useState('');
 
     const onSubmit = (e : any) => {
         
         e.preventDefault() // prevent full page refresh
-        onMintNFT([address, name, description, imgPath])
+        onMintNFT([address, name, description, img])
     }
 
     return (
@@ -44,11 +44,11 @@ const mintNFT = ({ onMintNFT } : any) => {
                 <p></p>
             </div>
             <div>
-                <b>NFT Image Path</b> 
+                <b>NFT Image</b> 
                 <br></br>
-                <input name='imgPath' type='text' id='imgPath' placeholder='Enter NFT Image Path' 
-                value={imgPath}
-                onChange={(e) => setImgPath(e.target.value)}
+                <input name='img' type='text' id='img' placeholder='Enter NFT Image CID' 
+                value={img}
+                onChange={(e) => setImg(e.target.value)}
                 />
                 <p></p>
             </div>
