@@ -184,19 +184,28 @@ const Home: NextPage = () => {
     
     console.log("mintScript", mintScript);
 
+    // Compile the helios minting script
     const mintProgram = Program.new(mintScript).compile(optimize);
 
+    // Add the script as a witness to the transaction
     tx.attachScript(mintProgram);
+
+    // Construct the NFT that we will want to send as an output
     const nftTokenName = ByteArrayData.fromString(name).toHex();
     const tokens: [number[], bigint][] = [[hexToBytes(nftTokenName), BigInt(1)]];
+
+    // Create an empty Redeemer because we must always send a Redeemer with
+    // a plutus script transaction even if we don't actually use it.
     const mintRedeemer = new ConstrData(0, []);
 
+    // Indicate the minting we want to include as part of this transaction
     tx.mintTokens(
       mintProgram.mintingPolicyHash,
       tokens,
       mintRedeemer
     )
 
+    // Construct the output and include both the minimum Ada as well as the minted NFT
     tx.addOutput(new TxOutput(
       Address.fromBech32(address),
       new Value(minAdaVal.lovelace, new Assets([[mintProgram.mintingPolicyHash, tokens]]))
@@ -214,13 +223,15 @@ const Home: NextPage = () => {
     // Send any change back to the buyer
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
+
     console.log("Waiting for wallet signature...");
     const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
+    
     console.log("Verifying signature...");
     const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
     tx.addSignatures(signatures)
+    
     console.log("Submitting transaction...");
-
     const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
     console.log("txHash", txHash);
     setTx({ txId: txHash });
