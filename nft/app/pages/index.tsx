@@ -184,8 +184,6 @@ const Home: NextPage = () => {
         )
     }`
     
-    console.log("mintScript", mintScript);
-
     // Compile the helios minting script
     const mintProgram = Program.new(mintScript).compile(optimize);
 
