@@ -1,5 +1,7 @@
 
 import MintNFT from '../components/MintNFT';
+import BuyerSign from '../components/BuyerSign';
+import SellerSignSubmit from '../components/SellerSignSubmit';
 import Head from 'next/head'
 import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
@@ -11,7 +13,7 @@ import {
   bytesToHex,
   ByteArrayData,
   ConstrData, 
-  hexToBytes, 
+  hexToBytes,
   NetworkParams,
   Program,
   Value, 
@@ -31,6 +33,8 @@ const Home: NextPage = () => {
   const optimize = false;
   const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
   const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
+  const [txBodyBuyer, setTxBodyBuyer] = useState<undefined | any>(undefined);
+  const [txBodySeller, setTxBodySeller] = useState<undefined | any>(undefined);
   const [tx, setTx] = useState({ txId : '' });
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
@@ -116,13 +120,16 @@ const Home: NextPage = () => {
     }
   }
 
-
   const mintNFT = async (params : any) => {
 
     const address = params[0];
     const name = params[1];
     const description = params[2];
     const img = params[3];
+    const sellerAddr = params[4];
+
+    const buyerPkh = Address.fromBech32(address).pubKeyHash;
+    const sellerPkh = Address.fromBech32(sellerAddr).pubKeyHash;
     const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
 
     // get the UTXOs from wallet, but they are in CBOR format, so need to convert them
@@ -164,6 +171,8 @@ const Home: NextPage = () => {
     const TX_ID: ByteArray = #` + utxos[0].txId.hex + `
     const txId: TxId = TxId::new(TX_ID)
     const outputId: TxOutputId = TxOutputId::new(txId, ` + utxos[0].utxoIdx + `)
+    const BUYER: PubKeyHash = PubKeyHash::new(#` + buyerPkh.hex + `)
+    const SELLER: PubKeyHash = PubKeyHash::new(#` + sellerPkh.hex + `)
     
     func main(ctx: ScriptContext) -> Bool {
         tx: Tx = ctx.tx;
@@ -177,12 +186,15 @@ const Home: NextPage = () => {
     
         // Validator logic starts
         value_minted == Value::new(assetclass, 1) &&
-        tx.inputs.any((input: TxInput) -> Bool {
+        (tx.inputs.any((input: TxInput) -> Bool {
                                         (input.output_id == outputId).trace("NFT1: ")
-                                        }
+                                        }) &&
+        tx.is_signed_by(BUYER).trace("NFT2: ") &&
+        tx.is_signed_by(SELLER).trace("NFT3: ")
         )
     }`
-    
+    console.log("mintScript", mintScript);
+
     // Compile the helios minting script
     const mintProgram = Program.new(mintScript).compile(optimize);
 
@@ -212,6 +224,8 @@ const Home: NextPage = () => {
 
     // Add the collateral utxo
     tx.addCollateral(colatUtxo);
+    tx.addSigner(buyerPkh);
+    tx.addSigner(sellerPkh);
 
     const networkParams = new NetworkParams(
       await fetch(networkParamsUrl)
@@ -237,19 +251,42 @@ const Home: NextPage = () => {
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
 
-    console.log("Waiting for wallet signature...");
-    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
+    // Store the transaction so it can be signed by the buyer and the seller
+    setTxBodyBuyer(tx);
+  }
+
+  const buyerSign = async () => {
+
+    console.log("Waiting for buyer wallet signature...");
+    const walletSig = await walletAPI.signTx(bytesToHex(txBodyBuyer.toCbor()), true)
     
-    console.log("Verifying signature...");
+    console.log("Verifying buyer signature...");
     const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
-    tx.addSignatures(signatures)
+    txBodyBuyer.addSignatures(signatures);
+
+    console.log("buyerSigned", txBodyBuyer);
+
+    setTxBodySeller(txBodyBuyer);
     
+  } 
+
+  const sellerSignSubmit = async () => {
+
+    console.log("Waiting for seller wallet signature...");
+    const walletSig = await walletAPI.signTx(bytesToHex(txBodySeller.toCbor()), true)
+    
+    console.log("Verifying seller signature...");
+    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
+    txBodySeller.addSignatures(signatures);
+
+    console.log("sellerSigned", txBodySeller);
+
     console.log("Submitting transaction...");
-    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
+    const txHash = await walletAPI.submitTx(bytesToHex(txBodySeller.toCbor()));
     console.log("txHash", txHash);
     setTx({ txId: txHash });
-    return txHash;
-   } 
+    return txHash;  
+  } 
 
 
   return (
@@ -279,8 +316,9 @@ const Home: NextPage = () => {
             <p>TxId &nbsp;&nbsp;<a href={"https://preprod.cexplorer.io/tx/" + tx.txId} target="_blank" rel="noopener noreferrer" >{tx.txId}</a></p>
             <p>Please wait until the transaction is confirmed on the blockchain and reload this page before doing another transaction</p>
           </div>}
-          {walletIsEnabled && !tx.txId && <div className={styles.border}><MintNFT onMintNFT={mintNFT}/></div>}
-
+          {walletIsEnabled && !tx.txId && !txBodyBuyer && !txBodySeller && <div className={styles.border}><MintNFT onMintNFT={mintNFT}/></div>}
+          {walletIsEnabled && !tx.txId && txBodyBuyer && !txBodySeller && <div className={styles.border}><BuyerSign onBuyerSign={buyerSign}/></div>}
+          {walletIsEnabled && !tx.txId && txBodySeller && <div className={styles.border}><SellerSignSubmit onSellerSignSubmit={sellerSignSubmit}/></div>}
       </main>
 
       <footer className={styles.footer}>
