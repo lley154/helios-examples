@@ -1,0 +1,78 @@
+spending vesting
+
+struct Datum {
+    orderAmount: Int
+    orderId: ByteArray
+    adaUsdPrce: ByteArray
+}
+
+enum Redeemer {
+    Spend
+    Refund
+}
+
+// Define the pkh of the merchant
+const MERCHANT_PKH: ByteArray = #3d62bfdff66855d150b6cf97e4509ef78f5ea6245f642adf7629338c 
+const merchantPkh: PubKeyHash = PubKeyHash::new(MERCHANT_PKH)
+
+// Define the pkh of the Donation
+const DONOR_PKH: ByteArray = #b2b0a5ceaf7bc9a56fe619819b8891e6bafeff5c2cb275e333f97a9f 
+const donorPkh: PubKeyHash = PubKeyHash::new(DONOR_PKH)
+
+// Define the pkh of the Refund 
+const REFUND_PKH: ByteArray = #a0aab2573c3bf101740f6e860e35cb92eea0dd30e8117b30771029a9 
+const refundPkh: PubKeyHash = PubKeyHash::new(REFUND_PKH)
+
+// Define the pkh of the Admin
+const ADMIN_PKH: ByteArray = #b9abcf6867519e28042048aa11207214a52e6d5d3288b752d1c27682
+const adminPkh: PubKeyHash = PubKeyHash::new(ADMIN_PKH)
+
+// Define the split merchant to donor
+const SPLIT: Int = 90
+
+// Define minAda
+const minAda = 2000000
+
+func getDonationAmt (orderAmt: Int) -> Int {
+    donationAmt: Int = (orderAmt * (100 - SPLIT)) / 100;
+
+    if (donationAmt < minAda) {
+        minAda
+    } else {
+        donationAmt
+    }
+}
+
+func main(datum: Datum, redeemer: Redeemer, context: ScriptContext) -> Bool {
+    
+    vHash : ValidatorHash = context.get_current_validator_hash();
+    tx: Tx = context.tx;
+
+    redeemer.switch {
+        Spend => {
+                    orderAmt: Int = datum.orderAmount;
+                    donationAmt: Int = getDonationAmt(orderAmt);
+                    merchantAmt: Int = orderAmt - donationAmt;
+                    orderAmtVal: Value = Value::lovelace(orderAmt);
+                    donationAmtVal: Value = Value::lovelace(donationAmt);
+                    merchantAmtVal: Value = Value::lovelace(merchantAmt);  
+                    merchOutTxs : []TxOutput = tx.outputs_sent_to(merchantPkh);
+                    donorOutTxs : []TxOutput = tx.outputs_sent_to(donorPkh);
+
+                    tx.is_signed_by(adminPkh).trace("DN1: ") &&
+                    (tx.value_locked_by(vHash) == orderAmtVal).trace("DN2: ") &&
+                    (merchOutTxs.head.value == merchantAmtVal).trace("DN3: ") &&
+                    (donorOutTxs.head.value == donationAmtVal).trace("DN4: ")         
+                },
+        Refund => {
+                    orderAmt: Int = datum.orderAmount;
+                    orderAmtVal: Value = Value::lovelace(orderAmt);
+                    refundOutTxs : []TxOutput = tx.outputs_sent_to(refundPkh);
+
+                    tx.is_signed_by(adminPkh).trace("DN5: ") &&
+                    (tx.value_locked_by(vHash) == orderAmtVal).trace("DN6: ") &&
+                    (refundOutTxs.head.value == orderAmtVal).trace("DN7: ")
+                }
+        }
+}
+
