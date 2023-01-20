@@ -1,6 +1,7 @@
 
 import LockAda from '../components/LockAda';
 import ClaimFunds from '../components/ClaimFunds';
+import CancelVesting from '../components/CancelVesting';
 import Head from 'next/head'
 import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
@@ -35,7 +36,6 @@ declare global {
   }
 }
 
-
 export async function getServerSideProps() {
   
   try {
@@ -55,7 +55,6 @@ export async function getServerSideProps() {
   return { props: {} };
 
 }
-
 
 const Home: NextPage = (props : any) => {
 
@@ -403,15 +402,118 @@ const Home: NextPage = (props : any) => {
 
     // Specify when this transaction is valid from.   This is needed so
     // time is included in the transaction which will be use by the validator
-    // script.  Add two hours for time to live.
+    // script.  Add two hours for time to live and offset the current time
+    // by 5 mins.
     const currentTime = new Date().getTime();
+    const earlierTime = new Date(currentTime - 5 * 60 * 1000); 
     const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000); 
    
-    tx.validFrom(new Date());
+    tx.validFrom(earlierTime);
     tx.validTo(laterTime);
 
     // Add the recipiants pkh
     tx.addSigner(claimAddress.pubKeyHash);
+
+    // Add the validator script to the transaction
+    tx.attachScript(compiledScript);
+
+    // Add the collateral
+    tx.addCollateral(colatUtxo);
+
+    const networkParams = new NetworkParams(
+      await fetch(networkParamsUrl)
+          .then(response => response.json())
+    )
+    console.log("tx before final", tx.dump());
+
+    // Send any change back to the buyer
+    await tx.finalize(networkParams, changeAddr);
+    console.log("tx after final", tx.dump());
+
+    console.log("Waiting for wallet signature...");
+    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
+
+    console.log("Verifying signature...");
+    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
+    tx.addSignatures(signatures)
+
+    console.log("Submitting transaction...");
+    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
+    console.log("txHash", txHash);
+    setTx({ txId: txHash });
+    return txHash;
+  } 
+
+  const cancelVesting = async (params : any) => {
+
+    const keyMPH = params[0] as string;
+    console.log("keyMPH", keyMPH);
+
+    // Get the UTXOs from wallet, but they are in CBOR format, so need to convert them
+    const cborUtxos = await walletAPI.getUtxos();
+    let utxos = [];
+
+    for (const cborUtxo of cborUtxos) {
+      const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
+      utxos.push(_utxo);
+    }
+
+    // Get the collateral UTXO from the wallet
+    var cborColatUtxo;
+    if (whichWalletSelected == "eternl") {
+      cborColatUtxo = await walletAPI.getCollateral();
+    } else if (whichWalletSelected == "nami") {
+      cborColatUtxo = await walletAPI.experimental.getCollateral();
+    } else {
+      throw console.error("No wallet selected")
+    }
+
+    if (cborColatUtxo.length == 0) {
+      throw console.error("No collateral set in wallet");
+    }
+    const colatUtxo = UTxO.fromCbor(hexToBytes(cborColatUtxo[0]));
+
+    // Compile the Helios script 
+    const compiledScript = Program.new(script).compile(optimize);
+    
+    // Extract the validator script address
+    const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
+
+    // Get the change address from the wallet
+    const hexChangeAddr = await walletAPI.getChangeAddress();
+    const changeAddr = Address.fromHex(hexChangeAddr);
+
+    // Use the change address to derive the owner address
+    const ownerAddress = Address.fromHex(hexChangeAddr);
+
+    // Start building the transaction
+    const tx = new Tx();
+    tx.addInputs(utxos);  
+
+    // Create the Cancel redeemer to spend the UTXO locked 
+    // at the script address
+    const valRedeemer = new ConstrData(0, []);
+
+    // Get the UTXO that has the vesting key token in it
+    const valUtxo = await getKeyUtxo(valAddr.toBech32(), keyMPH, ByteArrayData.fromString("Vesting Key").toHex());
+    tx.addInput(valUtxo, valRedeemer);
+
+    // Send the value of the of the valUTXO back to the owner
+    tx.addOutput(new TxOutput(ownerAddress, valUtxo.value));
+
+    // Specify when this transaction is valid from.   This is needed so
+    // time is included in the transaction which will be use by the validator
+    // script.  Add two hours for time to live and offset the current time
+    // by 5 mins.
+    const currentTime = new Date().getTime();
+    const earlierTime = new Date(currentTime - 5 * 60 * 1000); 
+    const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000); 
+   
+    tx.validFrom(earlierTime);
+    tx.validTo(laterTime);
+
+    // Add the recipiants pkh
+    tx.addSigner(ownerAddress.pubKeyHash);
 
     // Add the validator script to the transaction
     tx.attachScript(compiledScript);
@@ -480,6 +582,7 @@ const Home: NextPage = (props : any) => {
         
           {walletIsEnabled && !tx.txId && <div className={styles.border}><LockAda onLockAda={lockAda}/></div>}
           {walletIsEnabled && !tx.txId && <div className={styles.border}><ClaimFunds onClaimFunds={claimFunds}/></div>}
+          {walletIsEnabled && !tx.txId && <div className={styles.border}><CancelVesting onCancelVesting={cancelVesting}/></div>}
           
       </main>
 
