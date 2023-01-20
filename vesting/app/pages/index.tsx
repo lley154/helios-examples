@@ -155,11 +155,7 @@ const Home: NextPage = (props : any) => {
     const benAddr = params[0] as string;
     const adaQty = params[1] as number;
     const dueDate = params[2] as string;
-    console.log("dueDate", dueDate);
     const deadline = new Date(dueDate + "T00:00");
-    console.log("deadline", deadline);
-    const deadlineSec = deadline.getTime();
-    console.log("deadlineSec", deadlineSec);
 
     const benPkh = Address.fromBech32(benAddr).pubKeyHash;
     const adaAmountVal = new Value(BigInt((adaQty)*1000000));
@@ -170,8 +166,11 @@ const Home: NextPage = (props : any) => {
 
     for (const cborUtxo of cborUtxos) {
       const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      utxos.push(_utxo);
+      if (_utxo.value.lovelace > adaQty*1000000) {
+        utxos.push(_utxo); // only get UTXO that is above our amount to lock
+      }
     }
+    console.log("utxos", utxos);
 
     // Get the collateral UTXO from the wallet
     var cborColatUtxo;
@@ -211,11 +210,11 @@ const Home: NextPage = (props : any) => {
     // Start building the transaction
     const tx = new Tx();
     
-    // Only pull the 1st utxo so it can be the one used in the minting policy
+    // Only pull one utxo so it can be the one used in the minting policy
     if (utxos.length > 0) {
       tx.addInput(utxos[0]);  
     } else {
-      throw console.error("No UTXO found");
+      throw console.error("No UTXO found with sufficient funds");
     }
 
     const mintScript =`minting nft
@@ -567,18 +566,23 @@ const Home: NextPage = (props : any) => {
               <input type="radio" id="nami" name="wallet" value="nami" onChange={handleWalletSelect}/>
                 <label>Nami</label>
             </p>
+
           </div>
-            {!tx.txId && walletIsEnabled && <div className={styles.border}><WalletInfo walletInfo={walletInfo}/></div>}
-            {tx.txId && <div className={styles.border}><b>Transaction Success!!!</b>
-            <p>TxId &nbsp;&nbsp;<a href={"https://preprod.cexplorer.io/tx/" + tx.txId} target="_blank" rel="noopener noreferrer" >{tx.txId}</a></p>
-            <p>Please wait until the transaction is confirmed on the blockchain and reload this page before doing another transaction</p>
-            <p></p>
-            </div>}
-            {threadToken.tt && <div className={styles.border}>
-            <p>Please copy and save your vesting key</p> 
-            <b><p>{threadToken.tt}</p></b>
-            <p>You will need this key to unlock your funds</p>
-            </div>}
+          <div className={styles.borderwallet}>
+            View Smart Contract:  &nbsp;  &nbsp;
+            <a href="/api/vesting" target="_blank" rel="noopener noreferrer">vesting.hl</a>
+          </div>
+          {!tx.txId && walletIsEnabled && <div className={styles.border}><WalletInfo walletInfo={walletInfo}/></div>}
+          {tx.txId && <div className={styles.border}><b>Transaction Success!!!</b>
+          <p>TxId &nbsp;&nbsp;<a href={"https://preprod.cexplorer.io/tx/" + tx.txId} target="_blank" rel="noopener noreferrer" >{tx.txId}</a></p>
+          <p>Please wait until the transaction is confirmed on the blockchain and reload this page before doing another transaction</p>
+          <p></p>
+          </div>}
+          {threadToken.tt && <div className={styles.border}>
+          <p>Please copy and save your vesting key</p> 
+          <b><p>{threadToken.tt}</p></b>
+          <p>You will need this key to unlock your funds</p>
+          </div>}
         
           {walletIsEnabled && !tx.txId && <div className={styles.border}><LockAda onLockAda={lockAda}/></div>}
           {walletIsEnabled && !tx.txId && <div className={styles.border}><ClaimFunds onClaimFunds={claimFunds}/></div>}

@@ -125,7 +125,9 @@ const Home: NextPage = () => {
 
     for (const cborUtxo of cborUtxos) {
       const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      utxos.push(_utxo);
+      if (_utxo.value.lovelace > adaQty*1000000) {
+        utxos.push(_utxo); // only get UTXO that is above our amount to lock
+      }
     }
 
     // Get the change address from the wallet

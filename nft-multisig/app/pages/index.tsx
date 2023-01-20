@@ -138,7 +138,9 @@ const Home: NextPage = () => {
 
     for (const cborUtxo of cborUtxos) {
       const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      utxos.push(_utxo);
+      if (_utxo.value.lovelace > 2000000) {
+        utxos.push(_utxo); // only get UTXO that is above our amount to lock
+      }
     }
 
     // Determine the UTXO used for collateral
