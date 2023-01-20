@@ -1,5 +1,6 @@
 
 import LockAda from '../components/LockAda';
+import ClaimFunds from '../components/ClaimFunds';
 import Head from 'next/head'
 import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
@@ -21,6 +22,7 @@ import {
   TxOutput,
   TxWitnesses,
   Tx, 
+  TxId,
   UTxO,
   MintingPolicyHash} from "@hyperionbt/helios";
 
@@ -40,7 +42,6 @@ export async function getServerSideProps() {
     const contractDirectory = path.join(process.cwd(), 'contracts/');
     const fileContents = await fs.readFile(contractDirectory + 'vesting.hl', 'utf8');
     const contractScript = fileContents.toString();
-    //console.log("contractScript", contractScript);
 
     const valScript = {
       script: contractScript
@@ -50,7 +51,7 @@ export async function getServerSideProps() {
   } catch (err) {
     console.log('getServerSideProps', err);
   } 
-  // No valid response from api
+  // Contract not found
   return { props: {} };
 
 }
@@ -59,9 +60,10 @@ export async function getServerSideProps() {
 const Home: NextPage = (props : any) => {
 
   const optimize = false;
-  const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
   const script = props.script as string;
-  //console.log("script", script);
+  const networkParamsUrl = process.env.NEXT_PUBLIC_NETWORK_PARAMS_URL as string;
+  const blockfrostAPI = process.env.NEXT_PUBLIC_BLOCKFROST_API as string;
+  const apiKey : string = process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY as string;
 
   const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
   const [tx, setTx] = useState({ txId : '' });
@@ -70,7 +72,6 @@ const Home: NextPage = (props : any) => {
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
   
-
   useEffect(() => {
     const checkWallet = async () => {
       
@@ -173,6 +174,7 @@ const Home: NextPage = (props : any) => {
       utxos.push(_utxo);
     }
 
+    // Get the collateral UTXO from the wallet
     var cborColatUtxo;
     if (whichWalletSelected == "eternl") {
       cborColatUtxo = await walletAPI.getCollateral();
@@ -216,7 +218,6 @@ const Home: NextPage = (props : any) => {
     } else {
       throw console.error("No UTXO found");
     }
-
 
     const mintScript =`minting nft
 
@@ -294,8 +295,153 @@ const Home: NextPage = (props : any) => {
     setTx({ txId: txHash });
     setThreadToken({ tt: mintProgram.mintingPolicyHash.hex });
     return txHash;
-   } 
+  } 
 
+  // Get the utxo with the vesting key token at the script address
+  const getKeyUtxo = async (scriptAddress : string, keyMPH : string, keyName : string ) => {
+
+    console.log("getKeyUTXO:keyMPH", keyMPH);
+    console.log("getKeyUTXO:keyName", keyName);
+
+    const blockfrostUrl : string = blockfrostAPI + "/addresses/" + scriptAddress + "/utxos/" + keyMPH + keyName;
+    console.log("blockfrost url", blockfrostUrl);
+
+    var payload;
+    let resp = await fetch(blockfrostUrl, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        project_id: apiKey,
+      },
+    });
+
+    if (resp?.status > 299) {
+      throw console.error("vesting key token not found", resp);
+    }
+    payload = await resp.json();
+
+    if (payload.length == 0) {
+      throw console.error("vesting key token not found");
+    }
+    const lovelaceAmount = payload[0].amount[0].quantity;
+    const mph = MintingPolicyHash.fromHex(keyMPH);
+    const tokenName = hexToBytes(keyName);
+
+    const value = new Value(BigInt(lovelaceAmount), new Assets([
+        [mph, [
+            [tokenName, BigInt(1)],
+        ]]
+    ]));
+
+    return new UTxO(
+      TxId.fromHex(payload[0].tx_hash),
+      BigInt(payload[0].output_index),
+      new TxOutput(
+        Address.fromBech32(scriptAddress),
+        value,
+        Datum.inline(ListData.fromCbor(hexToBytes(payload[0].inline_datum)))
+      )
+    );
+  }
+
+  const claimFunds = async (params : any) => {
+
+    const keyMPH = params[0] as string;
+    console.log("keyMPH", keyMPH);
+
+    // Get the UTXOs from wallet, but they are in CBOR format, so need to convert them
+    const cborUtxos = await walletAPI.getUtxos();
+    let utxos = [];
+
+    for (const cborUtxo of cborUtxos) {
+      const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
+      utxos.push(_utxo);
+    }
+
+    // Get the collateral UTXO from the wallet
+    var cborColatUtxo;
+    if (whichWalletSelected == "eternl") {
+      cborColatUtxo = await walletAPI.getCollateral();
+    } else if (whichWalletSelected == "nami") {
+      cborColatUtxo = await walletAPI.experimental.getCollateral();
+    } else {
+      throw console.error("No wallet selected")
+    }
+
+    if (cborColatUtxo.length == 0) {
+      throw console.error("No collateral set in wallet");
+    }
+    const colatUtxo = UTxO.fromCbor(hexToBytes(cborColatUtxo[0]));
+
+    // Compile the Helios script 
+    const compiledScript = Program.new(script).compile(optimize);
+    
+    // Extract the validator script address
+    const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
+
+    // Get the change address from the wallet
+    const hexChangeAddr = await walletAPI.getChangeAddress();
+    const changeAddr = Address.fromHex(hexChangeAddr);
+
+    // Use the change address to derive the claimer address
+    const claimAddress = Address.fromHex(hexChangeAddr);
+
+    // Start building the transaction
+    const tx = new Tx();
+    tx.addInputs(utxos);  
+
+    // Create the Claim redeemer to spend the UTXO locked 
+    // at the script address
+    const valRedeemer = new ConstrData(1, []);
+
+    // Get the UTXO that has the vesting key token in it
+    const valUtxo = await getKeyUtxo(valAddr.toBech32(), keyMPH, ByteArrayData.fromString("Vesting Key").toHex());
+    tx.addInput(valUtxo, valRedeemer);
+
+    // Send the value of the of the valUTXO to the recipiant
+    tx.addOutput(new TxOutput(claimAddress, valUtxo.value));
+
+    // Specify when this transaction is valid from.   This is needed so
+    // time is included in the transaction which will be use by the validator
+    // script.  Add two hours for time to live.
+    const currentTime = new Date().getTime();
+    const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000); 
+   
+    tx.validFrom(new Date());
+    tx.validTo(laterTime);
+
+    // Add the recipiants pkh
+    tx.addSigner(claimAddress.pubKeyHash);
+
+    // Add the validator script to the transaction
+    tx.attachScript(compiledScript);
+
+    // Add the collateral
+    tx.addCollateral(colatUtxo);
+
+    const networkParams = new NetworkParams(
+      await fetch(networkParamsUrl)
+          .then(response => response.json())
+    )
+    console.log("tx before final", tx.dump());
+
+    // Send any change back to the buyer
+    await tx.finalize(networkParams, changeAddr);
+    console.log("tx after final", tx.dump());
+
+    console.log("Waiting for wallet signature...");
+    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
+
+    console.log("Verifying signature...");
+    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
+    tx.addSignatures(signatures)
+
+    console.log("Submitting transaction...");
+    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
+    console.log("txHash", txHash);
+    setTx({ txId: txHash });
+    return txHash;
+  } 
 
 
   return (
@@ -325,11 +471,15 @@ const Home: NextPage = (props : any) => {
             <p>TxId &nbsp;&nbsp;<a href={"https://preprod.cexplorer.io/tx/" + tx.txId} target="_blank" rel="noopener noreferrer" >{tx.txId}</a></p>
             <p>Please wait until the transaction is confirmed on the blockchain and reload this page before doing another transaction</p>
             <p></p>
-            <p>Please remember your vesting key</p> 
-            <p>{threadToken.tt}</p>
+            </div>}
+            {threadToken.tt && <div className={styles.border}>
+            <p>Please copy and save your vesting key</p> 
+            <b><p>{threadToken.tt}</p></b>
             <p>You will need this key to unlock your funds</p>
-          </div>}
+            </div>}
+        
           {walletIsEnabled && !tx.txId && <div className={styles.border}><LockAda onLockAda={lockAda}/></div>}
+          {walletIsEnabled && !tx.txId && <div className={styles.border}><ClaimFunds onClaimFunds={claimFunds}/></div>}
           
       </main>
 
