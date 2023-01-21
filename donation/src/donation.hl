@@ -58,16 +58,16 @@ func main(datum: Datum, redeemer: Redeemer, context: ScriptContext) -> Bool {
                     donorOutTxs : []TxOutput = tx.outputs_sent_to(donorPkh);
 
                     tx.is_signed_by(adminPkh).trace("DN1: ") &&   
-                    (merchOutTxs.head.value == merchantAmtVal).trace("DN3: ") &&
-                    (donorOutTxs.head.value == donationAmtVal).trace("DN4: ")         
+                    (merchOutTxs.head.value == merchantAmtVal).trace("DN2: ") &&
+                    (donorOutTxs.head.value == donationAmtVal).trace("DN3: ")         
                 },
         Refund => {
                     orderAmt: Int = datum.orderAmount;
                     returnAmtVal: Value = Value::lovelace(orderAmt);
                     refundOutTxs : []TxOutput = tx.outputs_sent_to(refundPkh);
 
-                    tx.is_signed_by(adminPkh).trace("DN5: ") &&
-                    (refundOutTxs.head.value == returnAmtVal).trace("DN7: ")
+                    tx.is_signed_by(adminPkh).trace("DN4: ") &&
+                    (refundOutTxs.head.value == returnAmtVal).trace("DN5: ")
                 }
         }
 }

@@ -36,7 +36,7 @@ export async function getServerSideProps(context : any) {
   const shop = process.env.NEXT_PUBLIC_SHOP as string;
   const token = process.env.NEXT_PUBLIC_ACCESS_TOKEN as string;
   const serviceFee = process.env.NEXT_PUBLIC_SERVICE_FEE as string;
-  const serviceFeeAda = serviceFee / 1000000   // in Ada
+  const serviceFeeAda = parseInt(serviceFee) / 1000000   // in Ada
   const uri = "admin/api/2022-10/orders/";
   const url = shop + uri + orderId + ".json";
 
@@ -103,8 +103,8 @@ export async function getServerSideProps(context : any) {
 
 const Home: NextPage = (props : any) => {
 
-  const optimize = false;
-  const minAda = 2000000;
+  const optimize = Boolean(JSON.parse(process.env.NEXT_PUBLIC_OPTIMIZED as string));
+  const minAda = parseInt(process.env.NEXT_PUBLIC_MIN_ADA as string);
   const networkParamsUrl = process.env.NEXT_PUBLIC_NETWORK_PARAMS_URL as string;
   const serviceFee = process.env.NEXT_PUBLIC_SERVICE_FEE as string;
 

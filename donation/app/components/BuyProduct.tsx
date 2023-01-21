@@ -15,7 +15,7 @@ const BuyProduct = ({ onBuyProduct, orderInfo } : any) => {
                 <p>Order Total &nbsp; &nbsp;${orderInfo.total}</p>
                 <p>ADA Amount Estimate &nbsp; &nbsp;{orderInfo.ada_amount}</p>
             </div>
-            <input type='submit' value='Send Ada'/>
+            <input type='submit' value='Pay With Ada'/>
         </form>
 
     )
