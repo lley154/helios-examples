@@ -31,7 +31,7 @@ const adminPkh: PubKeyHash = PubKeyHash::new(ADMIN_PKH)
 const SPLIT: Int = 90
 
 // Define minimum Ada for a donation
-const minAda = 2000000
+const minAda = 1000000
 
 func getDonationAmt (orderAmt: Int) -> Int {
     donationAmt: Int = (orderAmt * (100 - SPLIT)) / 100;
@@ -45,7 +45,6 @@ func getDonationAmt (orderAmt: Int) -> Int {
 
 func main(datum: Datum, redeemer: Redeemer, context: ScriptContext) -> Bool {
     
-    vHash : ValidatorHash = context.get_current_validator_hash();
     tx: Tx = context.tx;
 
     redeemer.switch {
@@ -53,25 +52,22 @@ func main(datum: Datum, redeemer: Redeemer, context: ScriptContext) -> Bool {
                     orderAmt: Int = datum.orderAmount;
                     donationAmt: Int = getDonationAmt(orderAmt);
                     merchantAmt: Int = orderAmt - donationAmt;
-                    orderAmtVal: Value = Value::lovelace(orderAmt);
                     donationAmtVal: Value = Value::lovelace(donationAmt);
                     merchantAmtVal: Value = Value::lovelace(merchantAmt);  
                     merchOutTxs : []TxOutput = tx.outputs_sent_to(merchantPkh);
                     donorOutTxs : []TxOutput = tx.outputs_sent_to(donorPkh);
 
-                    tx.is_signed_by(adminPkh).trace("DN1: ") &&
-                    (tx.value_locked_by(vHash) == orderAmtVal).trace("DN2: ") &&
+                    tx.is_signed_by(adminPkh).trace("DN1: ") &&   
                     (merchOutTxs.head.value == merchantAmtVal).trace("DN3: ") &&
                     (donorOutTxs.head.value == donationAmtVal).trace("DN4: ")         
                 },
         Refund => {
                     orderAmt: Int = datum.orderAmount;
-                    orderAmtVal: Value = Value::lovelace(orderAmt);
+                    returnAmtVal: Value = Value::lovelace(orderAmt);
                     refundOutTxs : []TxOutput = tx.outputs_sent_to(refundPkh);
 
                     tx.is_signed_by(adminPkh).trace("DN5: ") &&
-                    (tx.value_locked_by(vHash) == orderAmtVal).trace("DN6: ") &&
-                    (refundOutTxs.head.value == orderAmtVal).trace("DN7: ")
+                    (refundOutTxs.head.value == returnAmtVal).trace("DN7: ")
                 }
         }
 }
