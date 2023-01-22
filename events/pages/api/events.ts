@@ -6,7 +6,7 @@ import { check, validationResult } from 'express-validator'
 
 const validateBody = initMiddleware(
   validateMiddleware([
-      check('context.tx_idx').isInt(),
+      check('context.tx_idx').isInt({ min: 0, max: 255}),
       check('context.tx_hash').isBase64(),
   ], validationResult)
 )
@@ -20,8 +20,6 @@ export default async function handler(
 
         if (req.method == 'POST') {
     
-            console.log(req.headers.authorization);
-            
             // Check for basic auth header
             if (!req.headers.authorization || req.headers.authorization.indexOf('Basic ') === -1) {
                 throw { status: 401, message: 'Missing Authorization Header' };
