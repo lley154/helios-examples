@@ -28,7 +28,7 @@ declare global {
 
 const Home: NextPage = () => {
 
-  const optimize = false;
+  const optimize = true;
   const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
   const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
   const [tx, setTx] = useState({ txId : '' });
