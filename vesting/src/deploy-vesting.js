@@ -1,4 +1,4 @@
-import * as helios from "../helios.js"
+import * as helios from "./helios.js"
 
 const vestingSrc = await Deno.readTextFile("./src/vesting.hl");
 const program = helios.Program.new(vestingSrc);
