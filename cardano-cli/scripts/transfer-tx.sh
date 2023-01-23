@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+######################################################################
+# Before you can run this script, please make sure you have identified
+# a UTXO that you can spend and that there is sufficient amount of Ada
+# in that UTXO.
+######################################################################
+
+
 # Unofficial bash strict mode.
 # See: http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -e
@@ -12,8 +19,8 @@ export WORK=/config/workspace/repo/work
 mkdir -p $WORK
 
 source_addr=addr_test1vq5s7k4kwqz4rrfe8mm9jz9tpm7c5u93yfwwsaw708yxs5sm70qjg
-source_utxo=9967b0ddceb9f4f16703c6893f93ddd25be4b3ccf2182f4095371924bcfe895c#1
-destination_addr=addr_test1vq7k907l7e59t52skm8e0ezsnmmc7h4xy30kg2klwc5n8rqug2pds
+source_utxo=4a0364c49f5541a0b409cf85fe3aa3ca1a3cc2e9bcad963b00e476e937e38270#0
+destination_addr=addr_test1qqq967dwdp009smfeqtzhve89fyuqjydkvwc9md5atyg2429gnmszjc7hyf685vp7qxeffjd568s3p234fg5ryhrkvjsn7muqm
 user_skey=/config/workspace/repo/.keys/user/key.skey
 network="--testnet-magic 1"
 
