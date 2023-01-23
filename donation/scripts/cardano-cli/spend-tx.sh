@@ -99,10 +99,17 @@ echo -n "$order_datum_in" > $WORK/datum-in.json
 
 # Get the order details from the datum
 order_ada=$(jq -r '.list[0].int' $WORK/datum-in.json)
+
 order_id_encoded=$(jq -r '.list[1].bytes' $WORK/datum-in.json)
-order_id=$(echo -n "$order_id_encoded=" | xxd -r -p)
+#order_id=$(echo -n "$order_id_encoded=" | xxd -r -p)
+echo -n "$order_id_encoded" > $WORK/order_id.encoded
+order_id=$(python3 hexdump.py -r $WORK/order_id.encoded)
+
 ada_usd_price_encoded=$(jq -r '.list[2].bytes' $WORK/datum-in.json)
-ada_usd_price=$(echo -n "$ada_usd_price_encoded=" | xxd -r -p)
+#ada_usd_price=$(echo -n "$ada_usd_price_encoded=" | xxd -r -p)
+echo -n "$ada_usd_price_encoded" > $WORK/ada_usd_price.encoded
+ada_usd_price=$(python3 hexdump.py -r $WORK/ada_usd_price.encoded)
+
 merchant_split=$SPLIT
 donor_split=$((100 - $SPLIT)) 
 donor_ada_amount=$(($order_ada * $donor_split / 100))
