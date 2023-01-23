@@ -127,10 +127,15 @@ now=$(date '+%Y/%m/%d-%H:%M:%S')
 # verify that the amount paid of the order is the same
 # as the order amount in shopify
 shopify_order_amount=$(curl -H "X-Shopify-Access-Token: $NEXT_PUBLIC_ACCESS_TOKEN" "$NEXT_PUBLIC_SHOP/admin/api/2022-10/orders/"$order_id".json" | jq -r '.order.total_price')
-shopify_order_ada=$(bc <<< "scale=3; $shopify_order_amount / $ada_usd_price")
-shopify_order_lovelace=$(bc <<< "scale=3; $shopify_order_ada * 1000000")
-shopify_order_ada_rounded=${shopify_order_lovelace%.*}
-difference=$(($order_ada - $shopify_order_ada_rounded))
+
+#shopify_order_ada=$(bc <<< "scale=3; $shopify_order_amount / $ada_usd_price")
+shopify_order_ada=$(python3 -c "print(round(($shopify_order_amount / $ada_usd_price), 3))")
+
+#shopify_order_lovelace=$(bc <<< "scale=3; $shopify_order_ada * 1000000")
+shopify_order_lovelace=$(python3 -c "print($shopify_order_ada * 1000000)")
+
+shopify_order_ada_truncated=${shopify_order_lovelace%.*}
+difference=$(($order_ada - $shopify_order_ada_truncated))
 difference_abs=$(echo ${difference#-})
 
 if (( $difference_abs > 10000 ));
