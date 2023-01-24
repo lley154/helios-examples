@@ -7,7 +7,7 @@
 // Email:         cschmitz398@gmail.com
 // Website:       https://www.hyperion-bt.org
 // Repository:    https://github.com/hyperion-bt/helios
-// Version:       0.11.1
+// Version:       0.10.15
 // Last update:   January 2023
 // License:       Unlicense
 //
@@ -209,7 +209,7 @@
 /**
  * Version of the Helios library.
  */
-export const VERSION = "0.11.1";
+export const VERSION = "0.10.15";
 
 /**
  * Global debug flag. Not currently used for anything though.
@@ -28795,7 +28795,7 @@ class IRFuncExpr extends IRExpr {
 	}
 
 	/**
-	 * Simplify body, returning a IRFuncExpr with the same args
+	 * Simplify body
 	 * @param {IRExprStack} stack
 	 * @returns {IRFuncExpr}
 	 */
@@ -29227,9 +29227,9 @@ class IRUserCallExpr extends IRCallExpr {
 
 			if (remArgExprs.length < argExprs.length || remArgExprs.length == 0) {
 				if (remArgExprs.length == 0) {
-					return fnExpr.inline(inlineStack).body;
+					return fnExpr.inline(inlineStack).simplifyBody(stack).body;
 				} else {
-					return new IRUserCallExpr(new IRFuncExpr(fnExpr.site, remVars, fnExpr.inline(inlineStack).body), remArgExprs, this.parensSite);
+					return new IRUserCallExpr(new IRFuncExpr(fnExpr.site, remVars, fnExpr.inline(inlineStack).simplifyBody(stack).body), remArgExprs, this.parensSite);
 				}
 			}
 		}
@@ -29272,7 +29272,7 @@ class IRUserCallExpr extends IRCallExpr {
 			}
 
 			if (remVars.length < argVariables.length) {
-				let that = new IRUserCallExpr(new IRFuncExpr(fnExpr.site, remVars, fnExpr.body.inline(inlineStack)), remArgs, this.parensSite);
+				let that = new IRUserCallExpr(new IRFuncExpr(fnExpr.site, remVars, fnExpr.body.inline(inlineStack).simplify(stack)), remArgs, this.parensSite);
 
 				if (that.score() <= this.score()) {
 					return that;
@@ -35668,35 +35668,36 @@ export class CoinSelection {
     /**
      * @param {UTxO[]} utxos 
      * @param {Value} amount 
-     * @param {boolean} largestFirst
      * @returns {[UTxO[], UTxO[]]} - [picked, not picked that can be used as spares]
      */
-    static selectExtremumFirst(utxos, amount, largestFirst) {
+    static pickSmallest(utxos, amount) {
         let sum = new Value();
 
         /** @type {UTxO[]} */
-        let notSelected = utxos.slice();
+        let notYetPicked = utxos.slice();
 
         /** @type {UTxO[]} */
-        const selected = [];
+        const picked = [];
+
+        const mphs = amount.assets.mintingPolicies;
 
         /**
-         * Selects smallest utxos until 'needed' is reached
+         * Picks smallest utxos until 'needed' is reached
          * @param {bigint} neededQuantity
          * @param {(utxo: UTxO) => bigint} getQuantity
          */
-        function select(neededQuantity, getQuantity) {
-            // first sort notYetPicked in ascending order when picking smallest first,
-            // and in descending order when picking largest first
-            notSelected.sort((a, b) => {
-                return Number(getQuantity(a) - getQuantity(b)) * (largestFirst ? -1 : 1);
+        function picker(neededQuantity, getQuantity) {
+            // first sort notYetPicked in ascending order
+            notYetPicked.sort((a, b) => {
+                return Number(getQuantity(a) - getQuantity(b));
             });
+
 
             let count = 0n;
             const remaining = [];
 
             while (count < neededQuantity) {
-                const utxo = notSelected.shift();
+                const utxo = notYetPicked.shift();
 
                 if (utxo === undefined) {
                     throw new Error("not enough utxos to cover amount");
@@ -35705,7 +35706,7 @@ export class CoinSelection {
 
                     if (qty > 0n) {
                         count += qty;
-                        selected.push(utxo);
+                        picked.push(utxo);
                         sum = sum.add(utxo.value);
                     } else {
                         remaining.push(utxo)
@@ -35713,13 +35714,8 @@ export class CoinSelection {
                 }
             }
 
-            notSelected = remaining;
+            notYetPicked = remaining;
         }
-
-        /**
-         * Select UTxOs while looping through (MintingPolicyHash,TokenName) entries
-         */
-        const mphs = amount.assets.mintingPolicies;
 
         for (const mph of mphs) {
             const tokenNames = amount.assets.getTokenNames(mph);
@@ -35731,7 +35727,7 @@ export class CoinSelection {
                 if (have < need) {
                     const diff = need - have;
 
-                    select(diff, (utxo) => utxo.value.assets.get(mph, tokenName));
+                    picker(diff, (utxo) => utxo.value.assets.get(mph, tokenName));
                 }
             }
         }
@@ -35743,28 +35739,10 @@ export class CoinSelection {
         if (have < need) {
             const diff = need - have;
 
-            select(diff, (utxo) => utxo.value.lovelace);
+            picker(diff, (utxo) => utxo.value.lovelace);
         }
 
-        return [selected, notSelected];
-    }
-
-    /**
-     * @param {UTxO[]} utxos 
-     * @param {Value} amount 
-     * @returns {[UTxO[], UTxO[]]} - [selected, not selected]
-     */
-    static selectSmallestFirst(utxos, amount) {
-        return CoinSelection.selectExtremumFirst(utxos, amount, false);
-    }
-
-    /**
-     * @param {UTxO[]} utxos 
-     * @param {Value} amount 
-     * @returns {[UTxO[], UTxO[]]} - [selected, not selected]
-     */
-    static selectLargestFirst(utxos, amount) {
-        return CoinSelection.selectExtremumFirst(utxos, amount, true);
+        return [picked, notYetPicked];
     }
 }
 
@@ -35915,7 +35893,7 @@ export class WalletHelper {
      * @returns {Promise<[UTxO[], UTxO[]]>} - [picked, not picked that can be used as spares]
      */ 
     async pickUtxos(amount) {
-        return CoinSelection.selectSmallestFirst(await this.#wallet.utxos, amount);
+        return CoinSelection.pickSmallest(await this.#wallet.utxos, amount);
     }
 
     /**

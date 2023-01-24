@@ -46,7 +46,7 @@ export default async function handler(
 
             if (shell.exec(cmd).code !== 0) {
                 res.setHeader('Tx-Status', 'Tx Failed');
-                res.status(500).json(`Tx Failed: ` + txId );
+                res.status(200).json(`Tx Failed: ` + txId );
             } else {
                 res.setHeader('Tx-Status', 'Tx Submitted');
                 res.status(200).json(`Tx Submitted: ` + txId);

@@ -152,11 +152,12 @@ const Home: NextPage = () => {
     console.log("tx after final", tx.dump());
     console.log("Waiting for wallet signature...");
     const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
+    
     console.log("Verifying signature...");
     const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
     tx.addSignatures(signatures)
+    
     console.log("Submitting transaction...");
-
     const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
     console.log("txHash", txHash);
     setTx({ txId: txHash });
