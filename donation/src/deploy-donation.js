@@ -2,7 +2,7 @@ import * as helios from "./helios.js"
 
 const donationSrc = await Deno.readTextFile("./src/donation.hl");
 const program = helios.Program.new(donationSrc);
-const simplify = true;
+const simplify = false;
 const uplcProgram = program.compile(simplify);
 
 const vHash = uplcProgram.validatorHash;
