@@ -103,7 +103,7 @@ export async function getServerSideProps(context : any) {
 
 const Home: NextPage = (props : any) => {
 
-  const optimize = Boolean(JSON.parse(process.env.NEXT_PUBLIC_OPTIMIZED as string));
+  const optimize = false;
   const minAda = parseInt(process.env.NEXT_PUBLIC_MIN_ADA as string);
   const networkParamsUrl = process.env.NEXT_PUBLIC_NETWORK_PARAMS_URL as string;
   const serviceFee = process.env.NEXT_PUBLIC_SERVICE_FEE as string;
