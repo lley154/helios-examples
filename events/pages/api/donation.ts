@@ -8,7 +8,7 @@ export default async function handler(
     res: NextApiResponse ) {
 
     //Find the absolute path of the contracts directory
-    const contractDirectory = path.join(process.cwd(), 'src');
+    const contractDirectory = path.join(process.cwd(), 'contracts');
     const fileContents = await fs.readFile(contractDirectory + '/donation.hl', 'utf8');
     res.setHeader('Content-Type', 'text');
     res.send(fileContents);

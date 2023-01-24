@@ -33,6 +33,9 @@ const SPLIT: Int = 90
 // Define minimum Ada for a donation
 const minAda = 1000000
 
+// Increment version if requried
+const version = 2
+
 func getDonationAmt (orderAmt: Int) -> Int {
     donationAmt: Int = (orderAmt * (100 - SPLIT)) / 100;
 

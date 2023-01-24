@@ -77,10 +77,17 @@ echo -n "$order_datum_in" > $WORK/datum-in.json
 
 # Get the order details from the datum
 order_ada=$(jq -r '.list[0].int' $WORK/datum-in.json)
+
 order_id_encoded=$(jq -r '.list[1].bytes' $WORK/datum-in.json)
-order_id=$(echo -n "$order_id_encoded=" | xxd -r -p)
+#order_id=$(echo -n "$order_id_encoded=" | xxd -r -p)
+echo -n "$order_id_encoded" > $WORK/order_id.encoded
+order_id=$(python3 hexdump.py -r $WORK/order_id.encoded)
+
 ada_usd_price_encoded=$(jq -r '.list[2].bytes' $WORK/datum-in.json)
-ada_usd_price=$(echo -n "$ada_usd_price_encoded=" | xxd -r -p)
+#ada_usd_price=$(echo -n "$ada_usd_price_encoded=" | xxd -r -p)
+echo -n "$ada_usd_price_encoded" > $WORK/ada_usd_price.encoded
+ada_usd_price=$(python3 hexdump.py -r $WORK/ada_usd_price.encoded)
+
 merchant_split=$SPLIT
 donor_split=$((100 - $SPLIT)) 
 donor_ada_amount=$(($order_ada * $donor_split / 100))
@@ -98,10 +105,15 @@ now=$(date '+%Y/%m/%d-%H:%M:%S')
 # Verify that the amount paid of the order is the same
 # as the order amount in shopify
 shopify_order_amount=$(curl -H "X-Shopify-Access-Token: $NEXT_PUBLIC_ACCESS_TOKEN" "$NEXT_PUBLIC_SHOP/admin/api/2022-10/orders/"$order_id".json" | jq -r '.order.total_price')
-shopify_order_ada=$(bc <<< "scale=3; $shopify_order_amount / $ada_usd_price")
-shopify_order_lovelace=$(bc <<< "scale=3; $shopify_order_ada * 1000000")
-shopify_order_ada_rounded=${shopify_order_lovelace%.*}
-difference=$(($order_ada - $shopify_order_ada_rounded))
+
+#shopify_order_ada=$(bc <<< "scale=3; $shopify_order_amount / $ada_usd_price")
+shopify_order_ada=$(python3 -c "print(round(($shopify_order_amount / $ada_usd_price), 3))")
+
+#shopify_order_lovelace=$(bc <<< "scale=3; $shopify_order_ada * 1000000")
+shopify_order_lovelace=$(python3 -c "print($shopify_order_ada * 1000000)")
+
+shopify_order_ada_truncated=${shopify_order_lovelace%.*}
+difference=$(($order_ada - $shopify_order_ada_truncated))
 difference_abs=$(echo ${difference#-})
 
 # Check if the difference is small enough to consider the amounts

@@ -107,6 +107,7 @@ const Home: NextPage = (props : any) => {
   const minAda = parseInt(process.env.NEXT_PUBLIC_MIN_ADA as string);
   const networkParamsUrl = process.env.NEXT_PUBLIC_NETWORK_PARAMS_URL as string;
   const serviceFee = process.env.NEXT_PUBLIC_SERVICE_FEE as string;
+  const orderAPIKey = process.env.NEXT_PUBLIC_ORDER_API_KEY as string;
 
   const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
   const [tx, setTx] = useState({ txId : '' });
@@ -262,6 +263,23 @@ const Home: NextPage = (props : any) => {
     const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
     console.log("txHash", txHash);
     setTx({ txId: txHash });
+
+    const updateOrderInfo = {
+      ...orderInfo,
+      tx_id : txHash
+    }
+
+    const response = await fetch('/api/updateOrder', {
+      method: 'POST',
+      body: JSON.stringify({ updateOrderInfo }),
+      headers: {
+        'Authorization' : 'Basic ' + orderAPIKey,
+        'Content-type' : 'application/json',
+      },
+    }) 
+    const data = await response.json();
+    console.log("updateOrder", data);
+
     return txHash;
   }
 
