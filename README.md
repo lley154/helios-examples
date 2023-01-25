@@ -1,6 +1,9 @@
 # Helios Examples
-The examples in this repso are part of the book
+The examples in this repository are part of the book
 
-### "Cardano Smart Contracts...The Easy Way", by Lawrence Ley B.Sc.
+### Cardano Smart Contracts...The Easy Way
+#### Author: Lawrence Ley B.Sc.
 
-For new developers just beginning their Cardano journey or active developers already in the trenches this book will be an invaluable resource.   End-to-end example explanations reviewing not only the smart contract logic & code, but also the offchain code as well.  I wrote this book because I wish there was one like this when I started my Cardano developer journey.  Cheers and please consider buying a copy of this book!
+The book is focused on making the onboarding experience for new developers to Cardano as easy and as straightforward as possible.  There is a lot of ground to cover so we start from the basics and go all the way to more sophisticated real world examples including both onchain and offchain code.  We wrap up the book with blockchain monitoring techniques, testing and production best practices.
+
+Please consider buying the book if you want to get more insights into the examples and to help support the author and the Helios project.
