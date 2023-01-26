@@ -6,17 +6,13 @@ import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
-  Address, 
-  bytesToHex, 
+  Address,  
   Cip30Handle,
   Cip30Wallet,
-  hexToBytes, 
   NetworkParams,
   Value, 
   TxOutput,
-  TxWitnesses,
   Tx, 
-  UTxO,
   WalletHelper} from "@hyperionbt/helios";
 
 declare global {
