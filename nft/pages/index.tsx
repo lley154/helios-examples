@@ -167,9 +167,9 @@ const Home: NextPage = () => {
         value_minted: Value = tx.minted;
     
         // Validator logic starts
-        value_minted == Value::new(assetclass, 1) &&
+        (value_minted == Value::new(assetclass, 1)).trace("NFT:1 ") &&
         tx.inputs.any((input: TxInput) -> Bool {
-                                        (input.output_id == outputId).trace("NFT1: ")
+                                        (input.output_id == outputId).trace("NFT2: ")
                                         }
         )
     }`
