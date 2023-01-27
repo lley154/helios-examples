@@ -10,7 +10,6 @@ import WalletInfo from '../components/WalletInfo';
 import {
   Assets,
   Address, 
-  bytesToHex,
   ByteArrayData,
   Cip30Handle,
   Cip30Wallet,
@@ -24,7 +23,6 @@ import {
   Program,
   Value, 
   TxOutput,
-  TxWitnesses,
   Tx, 
   TxId,
   UTxO,
@@ -282,7 +280,6 @@ const Home: NextPage = (props : any) => {
     const blockfrostUrl : string = blockfrostAPI + "/addresses/" + scriptAddress + "/utxos/" + keyMPH + keyName;
     console.log("blockfrost url", blockfrostUrl);
 
-    var payload;
     let resp = await fetch(blockfrostUrl, {
       method: "GET",
       headers: {
@@ -294,7 +291,7 @@ const Home: NextPage = (props : any) => {
     if (resp?.status > 299) {
       throw console.error("vesting key token not found", resp);
     }
-    payload = await resp.json();
+    const payload = await resp.json();
 
     if (payload.length == 0) {
       throw console.error("vesting key token not found");
