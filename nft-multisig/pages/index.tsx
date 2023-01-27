@@ -185,7 +185,6 @@ const Home: NextPage = () => {
         tx.is_signed_by(SELLER).trace("NFT3: ")
         )
     }`
-    console.log("mintScript", mintScript);
 
     // Compile the helios minting script
     const mintProgram = Program.new(mintScript).compile(optimize);
@@ -216,6 +215,8 @@ const Home: NextPage = () => {
 
     // Add the collateral utxo
     tx.addCollateral(colatUtxo);
+
+    // Add buyer and seller required PKHs for the tx
     tx.addSigner(buyerPkh);
     tx.addSigner(sellerPkh);
 
