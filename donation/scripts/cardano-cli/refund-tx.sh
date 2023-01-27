@@ -112,8 +112,8 @@ metadata="{
     }
 }"
 
-echo $metadata > $BASE/scripts/cardano-cli/$ENV/data/earthtrust-refund-metadata.json
-metadata_file_path="$BASE/scripts/cardano-cli/$ENV/data/earthtrust-refund-metadata.json"
+echo $metadata > $BASE/scripts/cardano-cli/$ENV/data/donation-refund-metadata.json
+metadata_file_path="$BASE/scripts/cardano-cli/$ENV/data/donation-refund-metadata.json"
 
 
 # Step 3: Build and submit the transaction

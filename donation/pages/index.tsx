@@ -7,21 +7,17 @@ import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
   Address, 
-  bytesToHex,
   ByteArrayData,
   Cip30Handle,
   Cip30Wallet,
   Datum,
-  hexToBytes,
   IntData,
   NetworkParams,
   ListData,
   Program,
   Value, 
   TxOutput,
-  TxWitnesses,
   Tx, 
-  UTxO,
   WalletHelper} from "@hyperionbt/helios";
 
 import path from 'path';

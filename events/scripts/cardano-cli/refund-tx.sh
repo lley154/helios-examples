@@ -12,7 +12,7 @@ set -x
 if [ -z $3 ]; 
 then
     echo "refund-tx.sh:  Invalid script arguments"
-    echo "Usage: refund-tx.sh [devnet|preview|preprod|mainnet] txHash txIdx"
+    echo "Usage: refund-tx.sh [devnet|preview|preprod|mainnet] txHash txIndx"
     exit 1
 fi
 ENV=$1
@@ -50,11 +50,11 @@ order_utxo_in_txid=$order_utxo_in#$3
 ##################################################################
 
 # generate values from cardano-cli tool
-$CARDANO_CLI query protocol-parameters $network --out-file $WORK/pparms.json
+cardano-cli query protocol-parameters $network --out-file $WORK/pparms.json
 
 # load in local variable values
 validator_script="$BASE/scripts/cardano-cli/$ENV/data/donation.plutus"
-validator_script_addr=$($CARDANO_CLI address build --payment-script-file "$validator_script" $network)
+validator_script_addr=$(cardano-cli address build --payment-script-file "$validator_script" $network)
 redeemer_file_path="$BASE/scripts/cardano-cli/$ENV/data/redeemer-refund.json"
 admin_pkh=$(cat $ADMIN_PKH)
 
@@ -63,8 +63,8 @@ admin_pkh=$(cat $ADMIN_PKH)
 # There needs to be at least 2 utxos that can be consumed; one for spending of the token
 # and one uxto for collateral
 
-admin_utxo_addr=$($CARDANO_CLI address build $network --payment-verification-key-file "$ADMIN_VKEY")
-$CARDANO_CLI query utxo --address "$admin_utxo_addr" --cardano-mode $network --out-file $WORK/admin-utxo.json
+admin_utxo_addr=$(cardano-cli address build $network --payment-verification-key-file "$ADMIN_VKEY")
+cardano-cli query utxo --address "$admin_utxo_addr" --cardano-mode $network --out-file $WORK/admin-utxo.json
 
 cat $WORK/admin-utxo.json | jq -r 'to_entries[] | select(.value.value.lovelace > '$COLLATERAL_ADA' ) | .key' > $WORK/admin-utxo-valid.json
 readarray admin_utxo_valid_array < $WORK/admin-utxo-valid.json
@@ -76,7 +76,7 @@ admin_utxo_collateral_in=$(echo $admin_utxo_valid_array | tr -d '\n')
 
 
 # Step 2: Get the donation smart contract utxos
-$CARDANO_CLI query utxo --address $validator_script_addr $network --out-file $WORK/validator-utxo.json
+cardano-cli query utxo --address $validator_script_addr $network --out-file $WORK/validator-utxo.json
 
 order_datum_in=$(jq -r 'to_entries[] 
 | select(.key == "'$order_utxo_in_txid'") 
@@ -87,10 +87,16 @@ echo -n "$order_datum_in" > $WORK/datum-in.json
 
 # Get the order details from the datum
 order_ada=$(jq -r '.list[0].int' $WORK/datum-in.json)
+
 order_id_encoded=$(jq -r '.list[1].bytes' $WORK/datum-in.json)
-order_id=$(echo -n "$order_id_encoded=" | xxd -r -p)
+#order_id=$(echo -n "$order_id_encoded=" | xxd -r -p)
+echo -n "$order_id_encoded" > $WORK/order_id.encoded
+order_id=$(python3 hexdump.py -r $WORK/order_id.encoded)
+
 ada_usd_price_encoded=$(jq -r '.list[2].bytes' $WORK/datum-in.json)
-ada_usd_price=$(echo -n "$ada_usd_price_encoded=" | xxd -r -p)
+#ada_usd_price=$(echo -n "$ada_usd_price_encoded=" | xxd -r -p)
+echo -n "$ada_usd_price_encoded" > $WORK/ada_usd_price.encoded
+ada_usd_price=$(python3 hexdump.py -r $WORK/ada_usd_price.encoded)
 
 now=$(date '+%Y/%m/%d-%H:%M:%S')
 
@@ -106,12 +112,12 @@ metadata="{
     }
 }"
 
-echo $metadata > $BASE/scripts/cardano-cli/$ENV/data/earthtrust-refund-metadata.json
-metadata_file_path="$BASE/scripts/cardano-cli/$ENV/data/earthtrust-refund-metadata.json"
+echo $metadata > $BASE/scripts/cardano-cli/$ENV/data/donation-refund-metadata.json
+metadata_file_path="$BASE/scripts/cardano-cli/$ENV/data/donation-refund-metadata.json"
 
 
 # Step 3: Build and submit the transaction
-$CARDANO_CLI transaction build \
+cardano-cli transaction build \
   --babbage-era \
   --cardano-mode \
   $network \
@@ -131,7 +137,7 @@ $CARDANO_CLI transaction build \
 
 echo "tx has been built"
 
-$CARDANO_CLI transaction sign \
+cardano-cli transaction sign \
   --tx-body-file $WORK/refund-tx-alonzo.body \
   $network \
   --signing-key-file "${ADMIN_SKEY}" \
@@ -140,5 +146,5 @@ $CARDANO_CLI transaction sign \
 echo "tx has been signed"
 
 echo "Submit the tx with plutus script and wait 5 seconds..."
-$CARDANO_CLI transaction submit --tx-file $WORK/refund-tx-alonzo.tx $network
+cardano-cli transaction submit --tx-file $WORK/refund-tx-alonzo.tx $network
 
