@@ -173,12 +173,12 @@ const Home: NextPage = () => {
         value_minted: Value = tx.minted;
     
         // Validator logic starts
-        value_minted == Value::new(assetclass, 1) &&
+        (value_minted == Value::new(assetclass, 1)).trace("NFT1: ") &&
         (tx.inputs.any((input: TxInput) -> Bool {
-                                        (input.output_id == outputId).trace("NFT1: ")
+                                        (input.output_id == outputId).trace("NFT2: ")
                                         }) &&
-        tx.is_signed_by(BUYER).trace("NFT2: ") &&
-        tx.is_signed_by(SELLER).trace("NFT3: ")
+        tx.is_signed_by(BUYER).trace("NFT3: ") &&
+        tx.is_signed_by(SELLER).trace("NFT4: ")
         )
     }`
 
