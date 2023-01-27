@@ -34,7 +34,7 @@ const SPLIT: Int = 90
 const minAda = 1000000
 
 // Increment version if requried
-const version = 3
+const version = 01
 
 func getDonationAmt (orderAmt: Int) -> Int {
     donationAmt: Int = (orderAmt * (100 - SPLIT)) / 100;

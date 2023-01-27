@@ -140,7 +140,7 @@ difference_abs=$(echo ${difference#-})
 
 if (( $difference_abs > 10000 ));
 then
-    echo "Order amount mismtach between order amount in datum vs order amount in shopify for $order_id"
+    echo "Order amount mismatch between order amount in datum vs order amount in shopify for $order_id"
     exit -1
 fi
 

@@ -6,15 +6,14 @@ import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
-  Address, 
-  bytesToHex, 
-  hexToBytes, 
+  Address,  
+  Cip30Handle,
+  Cip30Wallet,
   NetworkParams,
   Value, 
   TxOutput,
-  TxWitnesses,
   Tx, 
-  UTxO} from "@hyperionbt/helios";
+  WalletHelper} from "@hyperionbt/helios";
 
 declare global {
   interface Window {
@@ -86,15 +85,17 @@ const Home: NextPage = () => {
 
   const enableWallet = async () => {
 
-    let walletwalletAPI = undefined;
       try {
         const walletChoice = whichWalletSelected;
         if (walletChoice === "nami") {
-            walletwalletAPI = await window.cardano.nami.enable();
+            const handle: Cip30Handle = await window.cardano.nami.enable();
+            const walletAPI = new Cip30Wallet(handle);
+            return walletAPI;
         } else if (walletChoice === "eternl") {
-            walletwalletAPI = await window.cardano.eternl.enable(); 
-        } 
-        return walletwalletAPI 
+            const handle: Cip30Handle = await window.cardano.eternl.enable();
+            const walletAPI = new Cip30Wallet(handle);
+            return walletAPI; 
+        }  
     } catch (err) {
         console.log('enableWallet error', err);
     }
@@ -102,8 +103,8 @@ const Home: NextPage = () => {
 
   const getBalance = async () => {
     try {
-        const balanceCBORHex = await walletAPI.getBalance();
-        const balanceAmountValue =  Value.fromCbor(hexToBytes(balanceCBORHex));
+        const walletHelper = new WalletHelper(walletAPI);
+        const balanceAmountValue  = await walletHelper.calcBalance();
         const balanceAmount = balanceAmountValue.lovelace;
         const walletBalance : BigInt = BigInt(balanceAmount);
         return walletBalance.toLocaleString();
@@ -119,24 +120,16 @@ const Home: NextPage = () => {
     const adaQty = params[1];
     const adaAmountVal = new Value(BigInt((adaQty)*1000000));
 
-    // get the UTXOs from wallet, but they are in CBOR format, so need to convert them
-    const cborUtxos = await walletAPI.getUtxos(bytesToHex(adaAmountVal.toCbor()));
-    let utxos = [];
-
-    for (const cborUtxo of cborUtxos) {
-      const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      if (_utxo.value.lovelace > adaQty*1000000) {
-        utxos.push(_utxo); // only get UTXO that is above our amount to lock
-      }
-    }
-
-    // Get the change address from the wallet
-    const hexChangeAddr = await walletAPI.getChangeAddress();
-    const changeAddr = Address.fromHex(hexChangeAddr);
+    // Get wallet UTXOs
+    const walletHelper = new WalletHelper(walletAPI);
+    const utxos = await walletHelper.pickUtxos(adaAmountVal);
+ 
+    // Get change address
+    const changeAddr = await walletHelper.changeAddress;
 
     // Start building the transaction
     const tx = new Tx();
-    tx.addInputs(utxos);
+    tx.addInputs(utxos[0]);
 
     // Add the destination address and the amount of Ada to send as an output
     tx.addOutput(new TxOutput(Address.fromBech32(address), adaAmountVal));
@@ -150,18 +143,16 @@ const Home: NextPage = () => {
     // Send any change back to the buyer
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
-    console.log("Waiting for wallet signature...");
-    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
-    
+  
     console.log("Verifying signature...");
-    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
-    tx.addSignatures(signatures)
+    const signatures = await walletAPI.signTx(tx);
+    tx.addSignatures(signatures);
     
     console.log("Submitting transaction...");
-    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
+    const txHash = await walletAPI.submitTx(tx);
+    
     console.log("txHash", txHash);
-    setTx({ txId: txHash });
-    return txHash;
+    setTx({ txId: txHash.hex });
    } 
 
 
