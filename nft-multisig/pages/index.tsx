@@ -151,12 +151,8 @@ const Home: NextPage = () => {
     // Start building the transaction
     const tx = new Tx();
 
-    // Only pull the 1st utxo so it can be the one used in the minting policy
-    if (utxos.length > 0) {
-      tx.addInput(utxos[0][0]);  
-    } else {
-      throw console.error("No UTXO found");
-    }
+    // Add the UTXO as inputs
+    tx.addInputs(utxos[0]);
 
     const mintScript =`minting nft
 

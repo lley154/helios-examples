@@ -8,7 +8,6 @@ import WalletInfo from '../components/WalletInfo';
 import {
   Assets,
   Address, 
-  bytesToHex,
   ByteArrayData,
   Cip30Handle,
   Cip30Wallet,
@@ -18,10 +17,8 @@ import {
   Program,
   Value, 
   TxOutput,
-  TxWitnesses,
   Tx,
-  WalletHelper, 
-  UTxO} from "@hyperionbt/helios";
+  WalletHelper} from "@hyperionbt/helios";
 
 declare global {
   interface Window {
@@ -143,12 +140,8 @@ const Home: NextPage = () => {
     // Start building the transaction
     const tx = new Tx();
 
-    // Only pull the 1st utxo so it can be the one used in the minting policy
-    if (utxos[0].length > 0) {
-      tx.addInput(utxos[0][0]);  
-    } else {
-      throw console.error("No UTXO found");
-    }
+    // Add the UTXO as inputs
+    tx.addInputs(utxos[0]);
 
     const mintScript =`minting nft
 

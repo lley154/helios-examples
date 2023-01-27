@@ -12,12 +12,15 @@ import {
   Address, 
   bytesToHex,
   ByteArrayData,
+  Cip30Handle,
+  Cip30Wallet,
   ConstrData, 
   Datum,
   hexToBytes,
   IntData,
-  NetworkParams,
   ListData,
+  MintingPolicyHash,
+  NetworkParams,
   Program,
   Value, 
   TxOutput,
@@ -25,7 +28,8 @@ import {
   Tx, 
   TxId,
   UTxO,
-  MintingPolicyHash} from "@hyperionbt/helios";
+  WalletHelper
+  } from "@hyperionbt/helios";
 
 import path from 'path';
 import { promises as fs } from 'fs';
@@ -124,15 +128,17 @@ const Home: NextPage = (props : any) => {
 
   const enableWallet = async () => {
 
-    let walletwalletAPI = undefined;
-      try {
-        const walletChoice = whichWalletSelected;
-        if (walletChoice === "nami") {
-            walletwalletAPI = await window.cardano.nami.enable();
+    try {
+      const walletChoice = whichWalletSelected;
+      if (walletChoice === "nami") {
+          const handle: Cip30Handle = await window.cardano.nami.enable();
+          const walletAPI = new Cip30Wallet(handle);
+          return walletAPI;
         } else if (walletChoice === "eternl") {
-            walletwalletAPI = await window.cardano.eternl.enable(); 
+          const handle: Cip30Handle = await window.cardano.eternl.enable();
+          const walletAPI = new Cip30Wallet(handle);
+          return walletAPI;
         } 
-        return walletwalletAPI 
     } catch (err) {
         console.log('enableWallet error', err);
     }
@@ -140,8 +146,8 @@ const Home: NextPage = (props : any) => {
 
   const getBalance = async () => {
     try {
-        const balanceCBORHex = await walletAPI.getBalance();
-        const balanceAmountValue =  Value.fromCbor(hexToBytes(balanceCBORHex));
+        const walletHelper = new WalletHelper(walletAPI);
+        const balanceAmountValue  = await walletHelper.calcBalance();
         const balanceAmount = balanceAmountValue.lovelace;
         const walletBalance : BigInt = BigInt(balanceAmount);
         return walletBalance.toLocaleString();
@@ -160,32 +166,15 @@ const Home: NextPage = (props : any) => {
     const benPkh = Address.fromBech32(benAddr).pubKeyHash;
     const adaAmountVal = new Value(BigInt((adaQty)*1000000));
 
-    // get the UTXOs from wallet, but they are in CBOR format, so need to convert them
-    const cborUtxos = await walletAPI.getUtxos(bytesToHex(adaAmountVal.toCbor()));
-    let utxos = [];
+    // Get wallet UTXOs
+    const walletHelper = new WalletHelper(walletAPI);
+    const utxos = await walletHelper.pickUtxos(adaAmountVal);
+ 
+    // Get change address
+    const changeAddr = await walletHelper.changeAddress;
 
-    for (const cborUtxo of cborUtxos) {
-      const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      if (_utxo.value.lovelace > adaQty*1000000) {
-        utxos.push(_utxo); // only get UTXO that is above our amount to lock
-      }
-    }
-    console.log("utxos", utxos);
-
-    // Get the collateral UTXO from the wallet
-    var cborColatUtxo;
-    if (whichWalletSelected == "eternl") {
-      cborColatUtxo = await walletAPI.getCollateral();
-    } else if (whichWalletSelected == "nami") {
-      cborColatUtxo = await walletAPI.experimental.getCollateral();
-    } else {
-      throw console.error("No wallet selected")
-    }
-
-    if (cborColatUtxo.length == 0) {
-      throw console.error("No collateral set in wallet");
-    }
-    const colatUtxo = UTxO.fromCbor(hexToBytes(cborColatUtxo[0]));
+    // Determine the UTXO used for collateral
+    const colatUtxo = await walletHelper.pickCollateral();
 
     // Compile the Helios script 
     const compiledScript = Program.new(script).compile(optimize);
@@ -193,12 +182,8 @@ const Home: NextPage = (props : any) => {
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
-    // Get the change address from the wallet
-    const hexChangeAddr = await walletAPI.getChangeAddress();
-    const changeAddr = Address.fromHex(hexChangeAddr);
-
     // Use the change address to derive the owner pkh
-    const ownerPkh = Address.fromHex(hexChangeAddr).pubKeyHash;
+    const ownerPkh = changeAddr.pubKeyHash;
 
     // Construct the datum
     const datum = new ListData([new ByteArrayData(ownerPkh.bytes),
@@ -210,18 +195,14 @@ const Home: NextPage = (props : any) => {
     // Start building the transaction
     const tx = new Tx();
     
-    // Only pull one utxo so it can be the one used in the minting policy
-    if (utxos.length > 0) {
-      tx.addInput(utxos[0]);  
-    } else {
-      throw console.error("No UTXO found with sufficient funds");
-    }
+    // Add the UTXO as inputs
+    tx.addInputs(utxos[0]);
 
     const mintScript =`minting nft
 
-    const TX_ID: ByteArray = #` + utxos[0].txId.hex + `
+    const TX_ID: ByteArray = #` + utxos[0][0].txId.hex + `
     const txId: TxId = TxId::new(TX_ID)
-    const outputId: TxOutputId = TxOutputId::new(txId, ` + utxos[0].utxoIdx + `)
+    const outputId: TxOutputId = TxOutputId::new(txId, ` + utxos[0][0].utxoIdx + `)
     
     func main(ctx: ScriptContext) -> Bool {
         tx: Tx = ctx.tx;
@@ -280,19 +261,16 @@ const Home: NextPage = (props : any) => {
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
 
-    console.log("Waiting for wallet signature...");
-    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
-
     console.log("Verifying signature...");
-    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
-    tx.addSignatures(signatures)
-
+    const signatures = await walletAPI.signTx(tx);
+    tx.addSignatures(signatures);
+    
     console.log("Submitting transaction...");
-    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
-    console.log("txHash", txHash);
-    setTx({ txId: txHash });
+    const txHash = await walletAPI.submitTx(tx);
+
+    console.log("txHash", txHash.hex);
+    setTx({ txId: txHash.hex });
     setThreadToken({ tt: mintProgram.mintingPolicyHash.hex });
-    return txHash;
   } 
 
   // Get the utxo with the vesting key token at the script address
@@ -345,31 +323,17 @@ const Home: NextPage = (props : any) => {
   const claimFunds = async (params : any) => {
 
     const keyMPH = params[0] as string;
-    console.log("keyMPH", keyMPH);
+    const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
 
-    // Get the UTXOs from wallet, but they are in CBOR format, so need to convert them
-    const cborUtxos = await walletAPI.getUtxos();
-    let utxos = [];
+    // Get wallet UTXOs
+    const walletHelper = new WalletHelper(walletAPI);
+    const utxos = await walletHelper.pickUtxos(minAdaVal);
+ 
+    // Get change address
+    const changeAddr = await walletHelper.changeAddress;
 
-    for (const cborUtxo of cborUtxos) {
-      const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      utxos.push(_utxo);
-    }
-
-    // Get the collateral UTXO from the wallet
-    var cborColatUtxo;
-    if (whichWalletSelected == "eternl") {
-      cborColatUtxo = await walletAPI.getCollateral();
-    } else if (whichWalletSelected == "nami") {
-      cborColatUtxo = await walletAPI.experimental.getCollateral();
-    } else {
-      throw console.error("No wallet selected")
-    }
-
-    if (cborColatUtxo.length == 0) {
-      throw console.error("No collateral set in wallet");
-    }
-    const colatUtxo = UTxO.fromCbor(hexToBytes(cborColatUtxo[0]));
+    // Determine the UTXO used for collateral
+    const colatUtxo = await walletHelper.pickCollateral();
 
     // Compile the Helios script 
     const compiledScript = Program.new(script).compile(optimize);
@@ -377,16 +341,14 @@ const Home: NextPage = (props : any) => {
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
-    // Get the change address from the wallet
-    const hexChangeAddr = await walletAPI.getChangeAddress();
-    const changeAddr = Address.fromHex(hexChangeAddr);
-
-    // Use the change address to derive the claimer address
-    const claimAddress = Address.fromHex(hexChangeAddr);
+    // Use the change address as the claimer address
+    const claimAddress = changeAddr;
 
     // Start building the transaction
     const tx = new Tx();
-    tx.addInputs(utxos);  
+
+    // Add UTXO inputs
+    tx.addInputs(utxos[0]);  
 
     // Create the Claim redeemer to spend the UTXO locked 
     // at the script address
@@ -396,7 +358,7 @@ const Home: NextPage = (props : any) => {
     const valUtxo = await getKeyUtxo(valAddr.toBech32(), keyMPH, ByteArrayData.fromString("Vesting Key").toHex());
     tx.addInput(valUtxo, valRedeemer);
 
-    // Send the value of the of the valUTXO to the recipiant
+    // Send the value of the of the valUTXO to the recipient
     tx.addOutput(new TxOutput(claimAddress, valUtxo.value));
 
     // Specify when this transaction is valid from.   This is needed so
@@ -410,7 +372,7 @@ const Home: NextPage = (props : any) => {
     tx.validFrom(earlierTime);
     tx.validTo(laterTime);
 
-    // Add the recipiants pkh
+    // Add the recipients pkh
     tx.addSigner(claimAddress.pubKeyHash);
 
     // Add the validator script to the transaction
@@ -429,48 +391,31 @@ const Home: NextPage = (props : any) => {
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
 
-    console.log("Waiting for wallet signature...");
-    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
-
     console.log("Verifying signature...");
-    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
-    tx.addSignatures(signatures)
-
+    const signatures = await walletAPI.signTx(tx);
+    tx.addSignatures(signatures);
+    
     console.log("Submitting transaction...");
-    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
-    console.log("txHash", txHash);
-    setTx({ txId: txHash });
-    return txHash;
+    const txHash = await walletAPI.submitTx(tx);
+
+    console.log("txHash", txHash.hex);
+    setTx({ txId: txHash.hex });
   } 
 
   const cancelVesting = async (params : any) => {
 
     const keyMPH = params[0] as string;
-    console.log("keyMPH", keyMPH);
+    const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
 
-    // Get the UTXOs from wallet, but they are in CBOR format, so need to convert them
-    const cborUtxos = await walletAPI.getUtxos();
-    let utxos = [];
+    // Get wallet UTXOs
+    const walletHelper = new WalletHelper(walletAPI);
+    const utxos = await walletHelper.pickUtxos(minAdaVal);
+ 
+    // Get change address
+    const changeAddr = await walletHelper.changeAddress;
 
-    for (const cborUtxo of cborUtxos) {
-      const _utxo = UTxO.fromCbor(hexToBytes(cborUtxo));
-      utxos.push(_utxo);
-    }
-
-    // Get the collateral UTXO from the wallet
-    var cborColatUtxo;
-    if (whichWalletSelected == "eternl") {
-      cborColatUtxo = await walletAPI.getCollateral();
-    } else if (whichWalletSelected == "nami") {
-      cborColatUtxo = await walletAPI.experimental.getCollateral();
-    } else {
-      throw console.error("No wallet selected")
-    }
-
-    if (cborColatUtxo.length == 0) {
-      throw console.error("No collateral set in wallet");
-    }
-    const colatUtxo = UTxO.fromCbor(hexToBytes(cborColatUtxo[0]));
+    // Determine the UTXO used for collateral
+    const colatUtxo = await walletHelper.pickCollateral();
 
     // Compile the Helios script 
     const compiledScript = Program.new(script).compile(optimize);
@@ -478,16 +423,12 @@ const Home: NextPage = (props : any) => {
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
-    // Get the change address from the wallet
-    const hexChangeAddr = await walletAPI.getChangeAddress();
-    const changeAddr = Address.fromHex(hexChangeAddr);
-
-    // Use the change address to derive the owner address
-    const ownerAddress = Address.fromHex(hexChangeAddr);
+    // Use the change address as the owner address
+    const ownerAddress = changeAddr;
 
     // Start building the transaction
     const tx = new Tx();
-    tx.addInputs(utxos);  
+    tx.addInputs(utxos[0]);  
 
     // Create the Cancel redeemer to spend the UTXO locked 
     // at the script address
@@ -530,18 +471,15 @@ const Home: NextPage = (props : any) => {
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
 
-    console.log("Waiting for wallet signature...");
-    const walletSig = await walletAPI.signTx(bytesToHex(tx.toCbor()), true)
-
     console.log("Verifying signature...");
-    const signatures = TxWitnesses.fromCbor(hexToBytes(walletSig)).signatures
-    tx.addSignatures(signatures)
-
+    const signatures = await walletAPI.signTx(tx);
+    tx.addSignatures(signatures);
+    
     console.log("Submitting transaction...");
-    const txHash = await walletAPI.submitTx(bytesToHex(tx.toCbor()));
-    console.log("txHash", txHash);
-    setTx({ txId: txHash });
-    return txHash;
+    const txHash = await walletAPI.submitTx(tx);
+
+    console.log("txHash", txHash.hex);
+    setTx({ txId: txHash.hex });
   } 
 
 
