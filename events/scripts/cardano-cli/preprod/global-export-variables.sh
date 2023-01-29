@@ -7,16 +7,12 @@ set -o pipefail
 
 
 # Define export variables
-#export BASE=/config/workspace/repo/events
-export BASE=/config/workspace/repo/helios-examples/events
+export BASE=/config/workspace/repo/events
 export WORK=$BASE/work
 export TESTNET_MAGIC=1
-#export ADMIN_VKEY=/config/workspace/repo/.keys/admin/key.vkey
-#export ADMIN_SKEY=/config/workspace/repo/.keys/admin/key.skey
-#export ADMIN_PKH=/config/workspace/repo/.keys/admin/key.pkh
-export ADMIN_VKEY=/config/workspace/repo/helios-examples/.keys/admin/key.vkey
-export ADMIN_SKEY=/config/workspace/repo/helios-examples/.keys/admin/key.skey
-export ADMIN_PKH=/config/workspace/repo/helios-examples/.keys/admin/key.pkh
+export ADMIN_VKEY=/config/workspace/repo/.keys/admin/key.vkey
+export ADMIN_SKEY=/config/workspace/repo/.keys/admin/key.skey
+export ADMIN_PKH=/config/workspace/repo/.keys/admin/key.pkh
 export MIN_ADA_OUTPUT_TX=2000000
 export MIN_ADA_OUTPUT_TX_REF=25000000
 export COLLATERAL_ADA=5000000
