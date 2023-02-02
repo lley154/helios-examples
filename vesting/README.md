@@ -2,7 +2,15 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-First, run the development server:
+Set the following env variables:
+
+```
+export NEXT_PUBLIC_BLOCKFROST_API_KEY="get-your-blockfrost-api-key"
+export NEXT_PUBLIC_BLOCKFROST_API="https://cardano-preprod.blockfrost.io/api/v0"
+export NEXT_PUBLIC_NETWORK_PARAMS_URL="https://d1t0d7c2nekuk0.cloudfront.net/preprod.json"
+```
+
+Run the development server:
 
 ```bash
 npm install
