@@ -2,7 +2,21 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-First, run the development server:
+Set the following env variables
+```
+export NEXT_PUBLIC_NETWORK="preprod"
+export NEXT_PUBLIC_BLOCKFROST_API_KEY="blockfrost api key"
+export NEXT_PUBLIC_BLOCKFROST_API="https://cardano-preprod.blockfrost.io/api/v0"
+export NEXT_PUBLIC_NETWORK_PARAMS_URL="https://d1t0d7c2nekuk0.cloudfront.net/preprod.json"
+export NEXT_PUBLIC_MIN_ADA=2000000
+export NEXT_PUBLIC_SHOP="https://shopify-store-url"
+export NEXT_PUBLIC_ACCESS_TOKEN="shopify access token"
+export NEXT_PUBLIC_COIN_API_KEY="coin market cap api key"
+export NEXT_PUBLIC_SERVICE_FEE=500000
+export NEXT_PUBLIC_ORDER_API_KEY=”create a unique base64 hash key”
+```
+
+Run the development server:
 
 ```bash
 npm install
