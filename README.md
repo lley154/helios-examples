@@ -9,7 +9,7 @@ The book is focused on making the onboarding experience for new developers to Ca
 Please consider buying the book if you want to get more insights into the examples and to help support the author and a donation to the [Helios project](https://github.com/Hyperion-BT/helios).
 
 ### List of examples in increasing order of complexity
-1) helios-tx-builder - builds a simple transaction to transfer Ada
+1) transfer-ada - builds a simple transaction to transfer Ada
 2) mint - mints an NFT
 3) mint-multisig - mints a multi signature NFT
 4) vesting - creates a vesting contract that locks funds until deadline
