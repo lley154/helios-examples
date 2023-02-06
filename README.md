@@ -9,11 +9,11 @@ The book is focused on making the onboarding experience for new developers to Ca
 Please consider buying the book if you want to get more insights into the examples and to help support the author and a donation to the [Helios project](https://github.com/Hyperion-BT/helios).
 
 ### List of examples in increasing order of complexity
-1) transfer-ada - builds a simple transaction to transfer Ada
-2) [mint](https://youtu.be/5iPqe-HNIUE) - mints an NFT
-3) mint-multisig - mints a multi signature NFT
-4) vesting - creates a vesting contract that locks funds until deadline
-5) donation - tracks donations on-chain when purchasing an eCommerce order
-6) events - block chain event monitoring example
+1) [transfer-ada](/transfer-ada) - builds a simple transaction to transfer Ada
+2) [nft](/nft) - mints an NFT ([video](https://youtu.be/5iPqe-HNIUE)) 
+3) [nft-multisig](/nft-multisig) - mints a multi signature NFT
+4) [vesting](/vesting) - creates a vesting contract that locks funds until deadline
+5) [donation](/donation) - tracks donations on-chain when purchasing an eCommerce order
+6) [events](/events) - block chain event monitoring example
 
 Note: Testing results are located in the [testing](/testing) directory.
