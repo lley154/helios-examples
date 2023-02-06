@@ -10,7 +10,7 @@ Please consider buying the book if you want to get more insights into the exampl
 
 ### List of examples in increasing order of complexity
 1) transfer-ada - builds a simple transaction to transfer Ada
-2) mint - mints an NFT
+2) [mint](https://youtu.be/5iPqe-HNIUE) - mints an NFT
 3) mint-multisig - mints a multi signature NFT
 4) vesting - creates a vesting contract that locks funds until deadline
 5) donation - tracks donations on-chain when purchasing an eCommerce order
