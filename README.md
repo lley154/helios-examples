@@ -16,4 +16,4 @@ Please consider buying the book if you want to get more insights into the exampl
 5) donation - tracks donations on-chain when purchasing an eCommerce order
 6) events - block chain event monitoring example
 
-Note: Testing results are located in the testing directory.
+Note: Testing results are located in the [testing](/testing) directory.
