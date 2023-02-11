@@ -119,7 +119,6 @@ const Home: NextPage = () => {
     }
   }
 
-
   const mintNFT = async (params : any) => {
 
     const address = params[0];
@@ -131,9 +130,6 @@ const Home: NextPage = () => {
     const minChangeAmt: number = 1000000; // minimum Ada needed to be sent back as change
     const minAdaVal = new Value(BigInt(minAda)); 
     const minUTXOVal = new Value(BigInt(minAda + maxTeeFee + minChangeAmt)); 
- 
- 
-
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
