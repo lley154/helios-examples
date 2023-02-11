@@ -30,6 +30,7 @@ const Home: NextPage = () => {
 
   const optimize = false;
   const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
+  //const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preview.json";
   const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
   const [tx, setTx] = useState({ txId : '' });
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
@@ -125,11 +126,18 @@ const Home: NextPage = () => {
     const name = params[1];
     const description = params[2];
     const img = params[3];
-    const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
+    const minAda : number = 2000000; // minimum Ada needed to send an NFT
+    const maxTeeFee: number = 500000; // maximum estimated transaction fee
+    const minChangeAmt: number = 1000000; // minimum Ada needed to be sent back as change
+    const minAdaVal = new Value(BigInt(minAda)); 
+    const minUTXOVal = new Value(BigInt(minAda + maxTeeFee + minChangeAmt)); 
+ 
+ 
+
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
-    const utxos = await walletHelper.pickUtxos(minAdaVal);
+    const utxos = await walletHelper.pickUtxos(minUTXOVal);
  
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
