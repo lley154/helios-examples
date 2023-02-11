@@ -126,10 +126,10 @@ const Home: NextPage = () => {
     const description = params[2];
     const img = params[3];
     const minAda : number = 2000000; // minimum Ada needed to send an NFT
-    const maxTeeFee: number = 500000; // maximum estimated transaction fee
+    const maxTxFee: number = 500000; // maximum estimated transaction fee
     const minChangeAmt: number = 1000000; // minimum Ada needed to be sent back as change
     const minAdaVal = new Value(BigInt(minAda)); 
-    const minUTXOVal = new Value(BigInt(minAda + maxTeeFee + minChangeAmt)); 
+    const minUTXOVal = new Value(BigInt(minAda + maxTxFee + minChangeAmt)); 
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
