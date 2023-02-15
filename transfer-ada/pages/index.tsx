@@ -6,13 +6,13 @@ import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
-  Address,  
+  Address,
   Cip30Handle,
   Cip30Wallet,
   NetworkParams,
-  Value, 
+  Value,
   TxOutput,
-  Tx, 
+  Tx,
   WalletHelper} from "@hyperionbt/helios";
 
 declare global {
@@ -29,15 +29,15 @@ const Home: NextPage = () => {
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
-  
+
 
   useEffect(() => {
     const checkWallet = async () => {
-      
+
       setWalletIsEnabled(await checkIfWalletFound());
     }
     checkWallet();
-  }, [whichWalletSelected]); 
+  }, [whichWalletSelected]);
 
   useEffect(() => {
     const enableSelectedWallet = async () => {
@@ -47,7 +47,7 @@ const Home: NextPage = () => {
       }
     }
     enableSelectedWallet();
-  }, [walletIsEnabled]); 
+  }, [walletIsEnabled]);
 
   useEffect(() => {
     const updateWalletInfo = async () => {
@@ -58,7 +58,7 @@ const Home: NextPage = () => {
               ...walletInfo,
               balance : _balance
             });
-        }           
+        }
     }
     updateWalletInfo();
   }, [walletAPI]);
@@ -71,7 +71,7 @@ const Home: NextPage = () => {
   }
 
   const checkIfWalletFound = async () => {
-      
+
     let walletFound = false;
 
     const walletChoice = whichWalletSelected;
@@ -79,7 +79,7 @@ const Home: NextPage = () => {
         walletFound = !!window?.cardano?.nami;
     } else if (walletChoice === "eternl") {
         walletFound = !!window?.cardano?.eternl;
-    } 
+    }
     return walletFound;
   }
 
@@ -94,8 +94,8 @@ const Home: NextPage = () => {
         } else if (walletChoice === "eternl") {
             const handle: Cip30Handle = await window.cardano.eternl.enable();
             const walletAPI = new Cip30Wallet(handle);
-            return walletAPI; 
-        }  
+            return walletAPI;
+        }
     } catch (err) {
         console.log('enableWallet error', err);
     }
@@ -123,7 +123,7 @@ const Home: NextPage = () => {
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
     const utxos = await walletHelper.pickUtxos(adaAmountVal);
- 
+
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
 
@@ -143,17 +143,17 @@ const Home: NextPage = () => {
     // Send any change back to the buyer
     await tx.finalize(networkParams, changeAddr);
     console.log("tx after final", tx.dump());
-  
+
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
-    
+
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
-    
+
     console.log("txHash", txHash);
     setTx({ txId: txHash.hex });
-   } 
+   }
 
 
   return (
@@ -168,14 +168,18 @@ const Home: NextPage = () => {
         <h3 className={styles.title}>
           Helios Tx Builder
         </h3>
-   
+
         <div className={styles.borderwallet}>
             <p>
-              Connect to your wallet 
+              Connect to your wallet
             </p>
             <p className={styles.borderwallet}>
               <input type="radio" id="nami" name="wallet" value="nami" onChange={handleWalletSelect}/>
                 <label>Nami</label>
+            </p>
+            <p className={styles.borderwallet}>
+                <input type="radio" id="eternl" name="wallet" value="eternl" onChange={handleWalletSelect}/>
+                <label>Eternl</label>
             </p>
           </div>
             {!tx.txId && walletIsEnabled && <div className={styles.border}><WalletInfo walletInfo={walletInfo}/></div>}

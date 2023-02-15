@@ -9,19 +9,19 @@ import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
   Assets,
-  Address, 
+  Address,
   bytesToHex,
   ByteArrayData,
   Cip30Handle,
   Cip30Wallet,
-  ConstrData, 
+  ConstrData,
   hexToBytes,
   NetworkParams,
   Program,
-  Value, 
+  Value,
   TxOutput,
   TxWitnesses,
-  Tx, 
+  Tx,
   UTxO,
   WalletHelper } from "@hyperionbt/helios";
 
@@ -42,15 +42,15 @@ const Home: NextPage = () => {
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
-  
+
 
   useEffect(() => {
     const checkWallet = async () => {
-      
+
       setWalletIsEnabled(await checkIfWalletFound());
     }
     checkWallet();
-  }, [whichWalletSelected]); 
+  }, [whichWalletSelected]);
 
   useEffect(() => {
     const enableSelectedWallet = async () => {
@@ -60,7 +60,7 @@ const Home: NextPage = () => {
       }
     }
     enableSelectedWallet();
-  }, [walletIsEnabled]); 
+  }, [walletIsEnabled]);
 
   useEffect(() => {
     const updateWalletInfo = async () => {
@@ -71,7 +71,7 @@ const Home: NextPage = () => {
               ...walletInfo,
               balance : _balance
             });
-        }           
+        }
     }
     updateWalletInfo();
   }, [walletAPI]);
@@ -83,7 +83,7 @@ const Home: NextPage = () => {
   }
 
   const checkIfWalletFound = async () => {
-      
+
     let walletFound = false;
 
     const walletChoice = whichWalletSelected;
@@ -91,7 +91,7 @@ const Home: NextPage = () => {
         walletFound = !!window?.cardano?.nami;
     } else if (walletChoice === "eternl") {
         walletFound = !!window?.cardano?.eternl;
-    } 
+    }
     return walletFound;
   }
 
@@ -107,8 +107,8 @@ const Home: NextPage = () => {
             const handle: Cip30Handle = await window.cardano.eternl.enable();
             const walletAPI = new Cip30Wallet(handle);
             return walletAPI;
-          } 
-        
+          }
+
     } catch (err) {
         console.log('enableWallet error', err);
     }
@@ -141,7 +141,7 @@ const Home: NextPage = () => {
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
     const utxos = await walletHelper.pickUtxos(minAdaVal);
- 
+
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
 
@@ -222,9 +222,9 @@ const Home: NextPage = () => {
     )
 
     // Attached the metadata for the minting transaction
-    tx.addMetadata(721, {"map": [[mintProgram.mintingPolicyHash.hex, {"map": [[name, 
+    tx.addMetadata(721, {"map": [[mintProgram.mintingPolicyHash.hex, {"map": [[name,
                                       {
-                                        "map": [["name", name], 
+                                        "map": [["name", name],
                                                 ["description", description],
                                                 ["image", img]
                                               ]
@@ -253,21 +253,21 @@ const Home: NextPage = () => {
     console.log("buyerSigned", txBodyBuyer);
 
     setTxBodySeller(txBodyBuyer);
-    
-  } 
+
+  }
 
   const sellerSignSubmit = async () => {
 
     console.log("Verifying seller signature...");
     const signatures = await walletAPI.signTx(txBodySeller);
     txBodySeller.addSignatures(signatures);
-    
+
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(txBodySeller);
 
     console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
-  } 
+  }
 
 
   return (
@@ -282,14 +282,18 @@ const Home: NextPage = () => {
         <h3 className={styles.title}>
           Helios Tx Builder
         </h3>
-   
+
         <div className={styles.borderwallet}>
             <p>
-              Connect to your wallet 
+              Connect to your wallet
             </p>
             <p className={styles.borderwallet}>
               <input type="radio" id="nami" name="wallet" value="nami" onChange={handleWalletSelect}/>
                 <label>Nami</label>
+            </p>
+            <p className={styles.borderwallet}>
+                <input type="radio" id="eternl" name="wallet" value="eternl" onChange={handleWalletSelect}/>
+                <label>Eternl</label>
             </p>
           </div>
             {!tx.txId && walletIsEnabled && <div className={styles.border}><WalletInfo walletInfo={walletInfo}/></div>}

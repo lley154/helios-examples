@@ -9,11 +9,11 @@ import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
   Assets,
-  Address, 
+  Address,
   ByteArrayData,
   Cip30Handle,
   Cip30Wallet,
-  ConstrData, 
+  ConstrData,
   Datum,
   hexToBytes,
   IntData,
@@ -21,9 +21,9 @@ import {
   MintingPolicyHash,
   NetworkParams,
   Program,
-  Value, 
+  Value,
   TxOutput,
-  Tx, 
+  Tx,
   TxId,
   UTxO,
   WalletHelper
@@ -39,7 +39,7 @@ declare global {
 }
 
 export async function getServerSideProps() {
-  
+
   try {
     const contractDirectory = path.join(process.cwd(), 'contracts/');
     const fileContents = await fs.readFile(contractDirectory + 'vesting.hl', 'utf8');
@@ -52,7 +52,7 @@ export async function getServerSideProps() {
     return { props: valScript }
   } catch (err) {
     console.log('getServerSideProps', err);
-  } 
+  }
   // Contract not found
   return { props: {} };
 
@@ -72,14 +72,14 @@ const Home: NextPage = (props : any) => {
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
-  
+
   useEffect(() => {
     const checkWallet = async () => {
-      
+
       setWalletIsEnabled(await checkIfWalletFound());
     }
     checkWallet();
-  }, [whichWalletSelected]); 
+  }, [whichWalletSelected]);
 
   useEffect(() => {
     const enableSelectedWallet = async () => {
@@ -89,7 +89,7 @@ const Home: NextPage = (props : any) => {
       }
     }
     enableSelectedWallet();
-  }, [walletIsEnabled]); 
+  }, [walletIsEnabled]);
 
   useEffect(() => {
     const updateWalletInfo = async () => {
@@ -100,7 +100,7 @@ const Home: NextPage = (props : any) => {
               ...walletInfo,
               balance : _balance
             });
-        }           
+        }
     }
     updateWalletInfo();
   }, [walletAPI]);
@@ -112,7 +112,7 @@ const Home: NextPage = (props : any) => {
   }
 
   const checkIfWalletFound = async () => {
-      
+
     let walletFound = false;
 
     const walletChoice = whichWalletSelected;
@@ -120,7 +120,7 @@ const Home: NextPage = (props : any) => {
         walletFound = !!window?.cardano?.nami;
     } else if (walletChoice === "eternl") {
         walletFound = !!window?.cardano?.eternl;
-    } 
+    }
     return walletFound;
   }
 
@@ -136,7 +136,7 @@ const Home: NextPage = (props : any) => {
           const handle: Cip30Handle = await window.cardano.eternl.enable();
           const walletAPI = new Cip30Wallet(handle);
           return walletAPI;
-        } 
+        }
     } catch (err) {
         console.log('enableWallet error', err);
     }
@@ -167,16 +167,16 @@ const Home: NextPage = (props : any) => {
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
     const utxos = await walletHelper.pickUtxos(adaAmountVal);
- 
+
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
 
     // Determine the UTXO used for collateral
     const colatUtxo = await walletHelper.pickCollateral();
 
-    // Compile the Helios script 
+    // Compile the Helios script
     const compiledScript = Program.new(script).compile(optimize);
-    
+
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
@@ -192,7 +192,7 @@ const Home: NextPage = (props : any) => {
 
     // Start building the transaction
     const tx = new Tx();
-    
+
     // Add the UTXO as inputs
     tx.addInputs(utxos[0]);
 
@@ -219,7 +219,7 @@ const Home: NextPage = (props : any) => {
                                         }
         )
     }`
-    
+
     // Compile the helios minting script
     const mintProgram = Program.new(mintScript).compile(optimize);
 
@@ -262,14 +262,14 @@ const Home: NextPage = (props : any) => {
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
-    
+
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
 
     console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
     setThreadToken({ tt: mintProgram.mintingPolicyHash.hex });
-  } 
+  }
 
   // Get the utxo with the vesting key token at the script address
   const getKeyUtxo = async (scriptAddress : string, keyMPH : string, keyName : string ) => {
@@ -325,16 +325,16 @@ const Home: NextPage = (props : any) => {
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
     const utxos = await walletHelper.pickUtxos(minAdaVal);
- 
+
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
 
     // Determine the UTXO used for collateral
     const colatUtxo = await walletHelper.pickCollateral();
 
-    // Compile the Helios script 
+    // Compile the Helios script
     const compiledScript = Program.new(script).compile(optimize);
-    
+
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
@@ -345,9 +345,9 @@ const Home: NextPage = (props : any) => {
     const tx = new Tx();
 
     // Add UTXO inputs
-    tx.addInputs(utxos[0]);  
+    tx.addInputs(utxos[0]);
 
-    // Create the Claim redeemer to spend the UTXO locked 
+    // Create the Claim redeemer to spend the UTXO locked
     // at the script address
     const valRedeemer = new ConstrData(1, []);
 
@@ -363,9 +363,9 @@ const Home: NextPage = (props : any) => {
     // script.  Add two hours for time to live and offset the current time
     // by 5 mins.
     const currentTime = new Date().getTime();
-    const earlierTime = new Date(currentTime - 5 * 60 * 1000); 
-    const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000); 
-   
+    const earlierTime = new Date(currentTime - 5 * 60 * 1000);
+    const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000);
+
     tx.validFrom(earlierTime);
     tx.validTo(laterTime);
 
@@ -391,13 +391,13 @@ const Home: NextPage = (props : any) => {
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
-    
+
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
 
     console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
-  } 
+  }
 
   const cancelVesting = async (params : any) => {
 
@@ -407,16 +407,16 @@ const Home: NextPage = (props : any) => {
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
     const utxos = await walletHelper.pickUtxos(minAdaVal);
- 
+
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
 
     // Determine the UTXO used for collateral
     const colatUtxo = await walletHelper.pickCollateral();
 
-    // Compile the Helios script 
+    // Compile the Helios script
     const compiledScript = Program.new(script).compile(optimize);
-    
+
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
@@ -425,9 +425,9 @@ const Home: NextPage = (props : any) => {
 
     // Start building the transaction
     const tx = new Tx();
-    tx.addInputs(utxos[0]);  
+    tx.addInputs(utxos[0]);
 
-    // Create the Cancel redeemer to spend the UTXO locked 
+    // Create the Cancel redeemer to spend the UTXO locked
     // at the script address
     const valRedeemer = new ConstrData(0, []);
 
@@ -443,9 +443,9 @@ const Home: NextPage = (props : any) => {
     // script.  Add two hours for time to live and offset the current time
     // by 5 mins.
     const currentTime = new Date().getTime();
-    const earlierTime = new Date(currentTime - 5 * 60 * 1000); 
-    const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000); 
-   
+    const earlierTime = new Date(currentTime - 5 * 60 * 1000);
+    const laterTime = new Date(currentTime + 2 * 60 * 60 * 1000);
+
     tx.validFrom(earlierTime);
     tx.validTo(laterTime);
 
@@ -471,13 +471,13 @@ const Home: NextPage = (props : any) => {
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
-    
+
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
 
     console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
-  } 
+  }
 
 
   return (
@@ -492,16 +492,19 @@ const Home: NextPage = (props : any) => {
         <h3 className={styles.title}>
           Helios Tx Builder
         </h3>
-   
+
         <div className={styles.borderwallet}>
             <p>
-              Connect to your wallet 
+              Connect to your wallet
             </p>
             <p className={styles.borderwallet}>
               <input type="radio" id="nami" name="wallet" value="nami" onChange={handleWalletSelect}/>
                 <label>Nami</label>
             </p>
-
+            <p className={styles.borderwallet}>
+                <input type="radio" id="eternl" name="wallet" value="eternl" onChange={handleWalletSelect}/>
+                <label>Eternl</label>
+            </p>
           </div>
           <div className={styles.borderwallet}>
             View Smart Contract:  &nbsp;  &nbsp;
@@ -514,15 +517,15 @@ const Home: NextPage = (props : any) => {
           <p></p>
           </div>}
           {threadToken.tt && <div className={styles.border}>
-          <p>Please copy and save your vesting key</p> 
+          <p>Please copy and save your vesting key</p>
           <b><p>{threadToken.tt}</p></b>
           <p>You will need this key to unlock your funds</p>
           </div>}
-        
+
           {walletIsEnabled && !tx.txId && <div className={styles.border}><LockAda onLockAda={lockAda}/></div>}
           {walletIsEnabled && !tx.txId && <div className={styles.border}><ClaimFunds onClaimFunds={claimFunds}/></div>}
           {walletIsEnabled && !tx.txId && <div className={styles.border}><CancelVesting onCancelVesting={cancelVesting}/></div>}
-          
+
       </main>
 
       <footer className={styles.footer}>
