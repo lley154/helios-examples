@@ -118,11 +118,15 @@ const Home: NextPage = () => {
 
     const address = params[0];
     const adaQty = params[1];
-    const adaAmountVal = new Value(BigInt((adaQty)*1000000));
-
+    const lovelaceQty = Number(adaQty) *1000000; // 1M lovelace per 1 Ada
+    const maxTxFee: number = 500000; // maximum estimated transaction fee
+    const minChangeAmt: number = 1000000; // minimum lovelace needed to be sent back as change
+    const adaAmountVal = new Value(BigInt(lovelaceQty));
+    const minUTXOVal = new Value(BigInt(lovelaceQty + maxTxFee + minChangeAmt));
+    
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
-    const utxos = await walletHelper.pickUtxos(adaAmountVal);
+    const utxos = await walletHelper.pickUtxos(minUTXOVal);
 
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
@@ -142,16 +146,16 @@ const Home: NextPage = () => {
 
     // Send any change back to the buyer
     await tx.finalize(networkParams, changeAddr);
-    console.log("tx after final", tx.dump());
 
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
 
+    console.log("tx after final", tx.dump());
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
 
-    console.log("txHash", txHash);
+    console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
    }
 
