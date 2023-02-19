@@ -37,7 +37,6 @@ const Home: NextPage = () => {
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
 
-
   useEffect(() => {
     const checkWallet = async () => {
 
@@ -125,9 +124,9 @@ const Home: NextPage = () => {
     const name = params[1];
     const description = params[2];
     const img = params[3];
-    const minAda : number = 2000000; // minimum Ada needed to send an NFT
+    const minAda : number = 2000000; // minimum lovelace needed to send an NFT
     const maxTxFee: number = 500000; // maximum estimated transaction fee
-    const minChangeAmt: number = 1000000; // minimum Ada needed to be sent back as change
+    const minChangeAmt: number = 1000000; // minimum lovelace needed to be sent back as change
     const minAdaVal = new Value(BigInt(minAda));
     const minUTXOVal = new Value(BigInt(minAda + maxTxFee + minChangeAmt));
 
@@ -223,16 +222,16 @@ const Home: NextPage = () => {
 
     // Send any change back to the buyer
     await tx.finalize(networkParams, changeAddr);
-    console.log("tx after final", tx.dump());
 
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
 
+    console.log("tx after final", tx.dump());
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
 
-    console.log("txHash", txHash);
+    console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
 
    }
