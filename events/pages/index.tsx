@@ -6,7 +6,7 @@ import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
 import {
-  Address, 
+  Address,
   ByteArrayData,
   Cip30Handle,
   Cip30Wallet,
@@ -15,9 +15,9 @@ import {
   NetworkParams,
   ListData,
   Program,
-  Value, 
+  Value,
   TxOutput,
-  Tx, 
+  Tx,
   WalletHelper} from "@hyperionbt/helios";
 
 import path from 'path';
@@ -30,7 +30,7 @@ declare global {
 }
 
 export async function getServerSideProps(context : any) {
-  
+
   const orderId = (parseInt(context.query.id) || 0).toString();
   const shop = process.env.NEXT_PUBLIC_SHOP as string;
   const token = process.env.NEXT_PUBLIC_ACCESS_TOKEN as string;
@@ -46,11 +46,11 @@ export async function getServerSideProps(context : any) {
     const contractScript = fileContents.toString();
 
     const req = await fetch(url,{
-      
+
       headers: {
         'Access-Control-Allow-Origin': '*',
         'X-Shopify-Access-Token': token,
-        'Content-Type': 'application/json',                  
+        'Content-Type': 'application/json',
       },
       method: 'GET'
     });
@@ -58,7 +58,7 @@ export async function getServerSideProps(context : any) {
     const orderData = await req.json();
 
     const adaUrl = "https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=ADA&convert=USD";
-    const adaReq = await fetch(adaUrl, { 
+    const adaReq = await fetch(adaUrl, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'X-CMC_PRO_API_KEY': process.env.NEXT_PUBLIC_COIN_API_KEY as string,
@@ -95,7 +95,7 @@ export async function getServerSideProps(context : any) {
     }
   } catch (err) {
     console.log('getServerSideProps', err);
-  } 
+  }
   return { props: undefined };
 }
 
@@ -113,14 +113,14 @@ const Home: NextPage = (props : any) => {
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
-  
+
   useEffect(() => {
     const checkWallet = async () => {
-      
+
       setWalletIsEnabled(await checkIfWalletFound());
     }
     checkWallet();
-  }, [whichWalletSelected]); 
+  }, [whichWalletSelected]);
 
   useEffect(() => {
     const enableSelectedWallet = async () => {
@@ -130,7 +130,7 @@ const Home: NextPage = (props : any) => {
       }
     }
     enableSelectedWallet();
-  }, [walletIsEnabled]); 
+  }, [walletIsEnabled]);
 
   useEffect(() => {
     const updateWalletInfo = async () => {
@@ -141,7 +141,7 @@ const Home: NextPage = (props : any) => {
               ...walletInfo,
               balance : _balance
             });
-        }           
+        }
     }
     updateWalletInfo();
   }, [walletAPI]);
@@ -153,7 +153,7 @@ const Home: NextPage = (props : any) => {
   }
 
   const checkIfWalletFound = async () => {
-      
+
     let walletFound = false;
 
     const walletChoice = whichWalletSelected;
@@ -161,7 +161,7 @@ const Home: NextPage = (props : any) => {
         walletFound = !!window?.cardano?.nami;
     } else if (walletChoice === "eternl") {
         walletFound = !!window?.cardano?.eternl;
-    } 
+    }
     return walletFound;
   }
 
@@ -177,7 +177,7 @@ const Home: NextPage = (props : any) => {
           const handle: Cip30Handle = await window.cardano.eternl.enable();
           const walletAPI = new Cip30Wallet(handle);
           return walletAPI;
-        } 
+        }
     } catch (err) {
         console.log('enableWallet error', err);
     }
@@ -196,7 +196,7 @@ const getBalance = async () => {
   }
 
   const buyProduct = async () => {
-  
+
     const lovelaceAmount : string = ((orderInfo.ada_amount as number) * 1000000).toFixed(0);
     const adaUsdPrice : string = orderInfo.ada_usd_price;
     const orderId : string = orderInfo.order_id;
@@ -207,11 +207,11 @@ const getBalance = async () => {
     const utxos = await walletHelper.pickUtxos(orderAdaVal);
 
     // Get change address
-    const changeAddr = await walletHelper.changeAddress;    
+    const changeAddr = await walletHelper.changeAddress;
 
-    // Compile the Helios script 
+    // Compile the Helios script
     const compiledScript = Program.new(orderInfo.script).compile(optimize);
-    
+
     // Extract the validator script address
     const valAddr = Address.fromValidatorHash(compiledScript.validatorHash);
 
@@ -225,9 +225,9 @@ const getBalance = async () => {
 
     // Start building the transaction
     const tx = new Tx();
-    
+
     // Add input UTOXs
-    tx.addInputs(utxos[0]);  
+    tx.addInputs(utxos[0]);
 
     // Add the destination address and the amount of Ada to lock including a datum
     tx.addOutput(new TxOutput(valAddr, new Value(BigInt(lovelaceAmount)), inlineDatum));
@@ -245,7 +245,7 @@ const getBalance = async () => {
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
     tx.addSignatures(signatures);
-    
+
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(tx);
 
@@ -264,7 +264,7 @@ const getBalance = async () => {
         'Authorization' : 'Basic ' + orderAPIKey,
         'Content-type' : 'application/json',
       },
-    }) 
+    })
     await response.json();
   }
 
@@ -281,16 +281,19 @@ const getBalance = async () => {
         <h3 className={styles.title}>
           Helios Tx Builder
         </h3>
-   
+
         <div className={styles.borderwallet}>
             <p>
-              Connect to your wallet 
+              Connect to your wallet
             </p>
             <p className={styles.borderwallet}>
               <input type="radio" id="nami" name="wallet" value="nami" onChange={handleWalletSelect}/>
                 <label>Nami</label>
             </p>
-
+            <p className={styles.borderwallet}>
+                <input type="radio" id="eternl" name="wallet" value="eternl" onChange={handleWalletSelect}/>
+                <label>Eternl</label>
+            </p>
           </div>
           <div className={styles.borderwallet}>
             View Smart Contract:  &nbsp;  &nbsp;
@@ -302,7 +305,7 @@ const getBalance = async () => {
           <p>Please wait until the transaction is confirmed on the blockchain and reload this page before doing another transaction</p>
           <p></p>
           </div>}
-        
+
           {walletIsEnabled && !tx.txId && <div className={styles.border}><BuyProduct onBuyProduct={buyProduct} orderInfo={orderInfo}/></div>}
 
       </main>
