@@ -18,12 +18,12 @@ import {
   hexToBytes,
   NetworkParams,
   Program,
-  Value,
+  Signature,
   TxOutput,
-  TxWitnesses,
   Tx,
-  UTxO,
-  WalletHelper } from "@hyperionbt/helios";
+  Value,
+  WalletHelper, 
+  PubKeyHash} from "@hyperionbt/helios";
 
 declare global {
   interface Window {
@@ -35,6 +35,7 @@ const Home: NextPage = () => {
 
   const optimize = false;
   const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
+  //const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preview.json";
   const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
   const [txBodyBuyer, setTxBodyBuyer] = useState<undefined | any>(undefined);
   const [txBodySeller, setTxBodySeller] = useState<undefined | any>(undefined);
@@ -128,6 +129,10 @@ const Home: NextPage = () => {
 
   const mintNFT = async (params : any) => {
 
+    // re-enable wallet api if the wallet account has been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+    
     const address = params[0];
     const name = params[1];
     const description = params[2];
@@ -136,11 +141,17 @@ const Home: NextPage = () => {
 
     const buyerPkh = Address.fromBech32(address).pubKeyHash;
     const sellerPkh = Address.fromBech32(sellerAddr).pubKeyHash;
-    const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
+    const adminPkh = PubKeyHash.fromHex("b9abcf6867519e28042048aa11207214a52e6d5d3288b752d1c27682");
+
+    const minAda : number = 2000000; // minimum lovelace needed to send an NFT
+    const maxTxFee: number = 500000; // maximum estimated transaction fee
+    const minChangeAmt: number = 1000000; // minimum lovelace needed to be sent back as change
+    const minAdaVal = new Value(BigInt(minAda));
+    const minUTXOVal = new Value(BigInt(minAda + maxTxFee + minChangeAmt));
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
-    const utxos = await walletHelper.pickUtxos(minAdaVal);
+    const utxos = await walletHelper.pickUtxos(minUTXOVal);
 
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
@@ -161,6 +172,7 @@ const Home: NextPage = () => {
     const outputId: TxOutputId = TxOutputId::new(txId, ` + utxos[0][0].utxoIdx + `)
     const BUYER: PubKeyHash = PubKeyHash::new(#` + buyerPkh.hex + `)
     const SELLER: PubKeyHash = PubKeyHash::new(#` + sellerPkh.hex + `)
+    const ADMIN: PubKeyHash = PubKeyHash::new(#` + adminPkh.hex + `)
     
     func main(ctx: ScriptContext) -> Bool {
         tx: Tx = ctx.tx;
@@ -178,7 +190,8 @@ const Home: NextPage = () => {
                                         (input.output_id == outputId).trace("NFT2: ")
                                         }) &&
         tx.is_signed_by(BUYER).trace("NFT3: ") &&
-        tx.is_signed_by(SELLER).trace("NFT4: ")
+        tx.is_signed_by(SELLER).trace("NFT4: ") &&
+        tx.is_signed_by(ADMIN).trace("NFT5: ")
         )
     }`
 
@@ -215,6 +228,7 @@ const Home: NextPage = () => {
     // Add buyer and seller required PKHs for the tx
     tx.addSigner(buyerPkh);
     tx.addSigner(sellerPkh);
+    tx.addSigner(adminPkh);
 
     const networkParams = new NetworkParams(
       await fetch(networkParamsUrl)
@@ -238,7 +252,6 @@ const Home: NextPage = () => {
 
     // Send any change back to the buyer
     await tx.finalize(networkParams, changeAddr);
-    console.log("tx after final", tx.dump());
 
     // Store the transaction so it can be signed by the buyer and the seller
     setTxBodyBuyer(tx);
@@ -246,21 +259,44 @@ const Home: NextPage = () => {
 
   const buyerSign = async () => {
 
-    console.log("Verifying buyer signature...");
+    // re-enable wallet api if the wallet account has been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+
+    console.log("Get buyer to sign...");
     const signatures = await walletAPI.signTx(txBodyBuyer);
     txBodyBuyer.addSignatures(signatures);
-
-    console.log("buyerSigned", txBodyBuyer);
-
     setTxBodySeller(txBodyBuyer);
-
+    console.log("tx after buyer signed", txBodyBuyer.dump());
   }
 
   const sellerSignSubmit = async () => {
 
-    console.log("Verifying seller signature...");
+    // re-enable wallet api if the wallet account has been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+
+    // Get signature from Seller's browser wallet
+    console.log("Get Seller to sign...");
     const signatures = await walletAPI.signTx(txBodySeller);
     txBodySeller.addSignatures(signatures);
+    console.log("tx after seller signed", txBodySeller.dump());
+
+    
+    // Get back-end signature from non-browser wallet private key
+    console.log("Get Back-end to sign...");
+    const response = await fetch('/api/getSignature', {
+      method: 'POST',
+      body: JSON.stringify({ txCbor: bytesToHex(txBodySeller.toCbor()) }),
+      headers: {
+        'Content-type' : 'application/json'
+      },
+    }) 
+    const cborData = await response.json();
+    const signature = Signature.fromCbor(hexToBytes(cborData));
+    console.log(signature.dump());
+    txBodySeller.addSignature(signature);
+    console.log("tx after back-end signed", txBodySeller.dump());
 
     console.log("Submitting transaction...");
     const txHash = await walletAPI.submitTx(txBodySeller);
@@ -268,7 +304,6 @@ const Home: NextPage = () => {
     console.log("txHash", txHash.hex);
     setTx({ txId: txHash.hex });
   }
-
 
   return (
     <div className={styles.container}>
