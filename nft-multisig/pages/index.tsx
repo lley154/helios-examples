@@ -195,6 +195,8 @@ const Home: NextPage = () => {
         )
     }`
 
+    console.log("NFT multi-sig minting script: ", mintScript);
+
     // Compile the helios minting script
     const mintProgram = Program.new(mintScript).compile(optimize);
 
@@ -294,7 +296,6 @@ const Home: NextPage = () => {
     }) 
     const cborData = await response.json();
     const signature = Signature.fromCbor(hexToBytes(cborData));
-    console.log(signature.dump());
     txBodySeller.addSignature(signature);
     console.log("tx after back-end signed", txBodySeller.dump());
 

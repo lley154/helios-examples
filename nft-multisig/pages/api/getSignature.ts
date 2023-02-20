@@ -21,12 +21,13 @@ export default async function handler(
     function harden(num: number) {
         return 0x80000000 + num;
     }
+
+    // PLEASE NOTE: DO NOT STORE THE REAL PASS PHRASE IN APPLICATION CODE...THIS IS DONE FOR EXAMPLE PURPOSES ONLY
     const entropy = mnemonicToEntropy(
         [ "witness", "pipe", "egg", "awake", "hood", "false", "fury", "announce", "one", "wool", "diagram", "weird", "phone", "treat", "bacon" ].join(' ')
         );
     
     try {
-        
         const buffer = Buffer.from(entropy, 'hex');
         const rootKey = await Bip32PrivateKey.fromEntropy(buffer);
 
@@ -61,8 +62,6 @@ export default async function handler(
                                         signatureArray);
 
         const sigCbor = bytesToHex(signature.toCbor());
-        //console.log("signature", signature.dump());
-
         res.status(200).json(sigCbor);
     }
     catch (err) {
