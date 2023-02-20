@@ -116,6 +116,10 @@ const Home: NextPage = () => {
 
   const transferAda = async (params : any) => {
 
+    // Re-enable wallet API since wallet account may have been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+
     const address = params[0];
     const adaQty = params[1];
     const lovelaceQty = Number(adaQty) *1000000; // 1M lovelace per 1 Ada

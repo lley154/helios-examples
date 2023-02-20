@@ -120,6 +120,10 @@ const Home: NextPage = () => {
 
   const mintNFT = async (params : any) => {
 
+    // Re-enable wallet API since wallet account may have been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+    
     const address = params[0];
     const name = params[1];
     const description = params[2];
