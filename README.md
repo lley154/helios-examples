@@ -9,7 +9,7 @@ The book is focused on making the onboarding experience for new developers to Ca
 ### List of examples in increasing order of complexity
 1) [transfer-ada](/transfer-ada) - builds a simple transaction to transfer Ada
 2) [nft](/nft) - mints an NFT ([video](https://youtu.be/5iPqe-HNIUE)) 
-3) [nft-multisig](/nft-multisig) - mints a multi signature NFT
+3) [nft-multisig](/nft-multisig) - mints a multi signature NFT ([video](https://youtu.be/CSd9ev_XH5w))
 4) [vesting](/vesting) - creates a vesting contract that locks funds until deadline
 5) [donation](/donation) - tracks donations on-chain when purchasing an eCommerce order
 6) [events](/events) - block chain event monitoring example
