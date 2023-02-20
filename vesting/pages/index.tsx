@@ -156,17 +156,25 @@ const Home: NextPage = (props : any) => {
 
   const lockAda = async (params : any) => {
 
+    // Re-enable wallet API since wallet account may have been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+
     const benAddr = params[0] as string;
     const adaQty = params[1] as number;
     const dueDate = params[2] as string;
     const deadline = new Date(dueDate + "T00:00");
 
     const benPkh = Address.fromBech32(benAddr).pubKeyHash;
-    const adaAmountVal = new Value(BigInt((adaQty)*1000000));
+    const lovelaceAmt = Number(adaQty) * 1000000;
+    const maxTxFee: number = 500000; // maximum estimated transaction fee
+    const minChangeAmt: number = 1000000; // minimum lovelace needed to be sent back as change
+    const adaAmountVal = new Value(BigInt(lovelaceAmt));
+    const minUTXOVal = new Value(BigInt(lovelaceAmt + maxTxFee + minChangeAmt));
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
-    const utxos = await walletHelper.pickUtxos(adaAmountVal);
+    const utxos = await walletHelper.pickUtxos(minUTXOVal);
 
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
@@ -319,12 +327,19 @@ const Home: NextPage = (props : any) => {
 
   const claimFunds = async (params : any) => {
 
+    // Re-enable wallet API since wallet account may have been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+
     const keyMPH = params[0] as string;
-    const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
+    const minAda : number = 2000000; // minimum lovelace needed to send an NFT
+    const maxTxFee: number = 500000; // maximum estimated transaction fee
+    const minChangeAmt: number = 1000000; // minimum lovelace needed to be sent back as change
+    const minUTXOVal = new Value(BigInt(minAda + maxTxFee + minChangeAmt));
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
-    const utxos = await walletHelper.pickUtxos(minAdaVal);
+    const utxos = await walletHelper.pickUtxos(minUTXOVal);
 
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
@@ -401,12 +416,19 @@ const Home: NextPage = (props : any) => {
 
   const cancelVesting = async (params : any) => {
 
+    // Re-enable wallet API since wallet account may have been changed
+    const api = await enableWallet();
+    setWalletAPI(api);
+    
     const keyMPH = params[0] as string;
-    const minAdaVal = new Value(BigInt(2000000));  // minimum Ada needed to send an NFT
+    const minAda : number = 2000000; // minimum lovelace needed to send an NFT
+    const maxTxFee: number = 500000; // maximum estimated transaction fee
+    const minChangeAmt: number = 1000000; // minimum lovelace needed to be sent back as change
+    const minUTXOVal = new Value(BigInt(minAda + maxTxFee + minChangeAmt));
 
     // Get wallet UTXOs
     const walletHelper = new WalletHelper(walletAPI);
-    const utxos = await walletHelper.pickUtxos(minAdaVal);
+    const utxos = await walletHelper.pickUtxos(minUTXOVal);
 
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
