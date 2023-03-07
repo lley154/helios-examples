@@ -1,6 +1,5 @@
-
-import MintNFT from '../components/MintNFT';
 import Head from 'next/head'
+import MintNFT from '../components/MintNFT';
 import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
@@ -31,11 +30,13 @@ const Home: NextPage = () => {
   const optimize = false;
   const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preprod.json";
   //const networkParamsUrl = "https://d1t0d7c2nekuk0.cloudfront.net/preview.json";
-  const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
-  const [tx, setTx] = useState({ txId : '' });
   const [walletInfo, setWalletInfo] = useState({ balance : ''});
   const [walletIsEnabled, setWalletIsEnabled] = useState(false);
   const [whichWalletSelected, setWhichWalletSelected] = useState(undefined);
+  const [walletAPI, setWalletAPI] = useState<undefined | any>(undefined);
+  const [walletHelper, setWalletHelper] = useState<undefined | any>(undefined);
+  
+  const [tx, setTx] = useState({ txId : '' });
 
   useEffect(() => {
     const checkWallet = async () => {
@@ -48,8 +49,7 @@ const Home: NextPage = () => {
   useEffect(() => {
     const enableSelectedWallet = async () => {
       if (walletIsEnabled) {
-        const api = await enableWallet();
-        setWalletAPI(api);
+        await enableWallet();
       }
     }
     enableSelectedWallet();
@@ -95,11 +95,15 @@ const Home: NextPage = () => {
         if (walletChoice === "nami") {
             const handle: Cip30Handle = await window.cardano.nami.enable();
             const walletAPI = new Cip30Wallet(handle);
-            return walletAPI;
+            const walletHelper = new WalletHelper(walletAPI);
+            setWalletHelper(walletHelper);
+            setWalletAPI(walletAPI);
           } else if (walletChoice === "eternl") {
             const handle: Cip30Handle = await window.cardano.eternl.enable();
             const walletAPI = new Cip30Wallet(handle);
-            return walletAPI;
+            const walletHelper = new WalletHelper(walletAPI);
+            setWalletHelper(walletHelper);
+            setWalletAPI(walletAPI);
           }
     } catch (err) {
         console.log('enableWallet error', err);
@@ -108,7 +112,6 @@ const Home: NextPage = () => {
 
   const getBalance = async () => {
     try {
-        const walletHelper = new WalletHelper(walletAPI);
         const balanceAmountValue  = await walletHelper.calcBalance();
         const balanceAmount = balanceAmountValue.lovelace;
         const walletBalance : BigInt = BigInt(balanceAmount);
@@ -121,9 +124,8 @@ const Home: NextPage = () => {
   const mintNFT = async (params : any) => {
 
     // Re-enable wallet API since wallet account may have been changed
-    const api = await enableWallet();
-    setWalletAPI(api);
-    
+    await enableWallet();
+
     const address = params[0];
     const name = params[1];
     const description = params[2];
@@ -135,14 +137,10 @@ const Home: NextPage = () => {
     const minUTXOVal = new Value(BigInt(minAda + maxTxFee + minChangeAmt));
 
     // Get wallet UTXOs
-    const walletHelper = new WalletHelper(walletAPI);
     const utxos = await walletHelper.pickUtxos(minUTXOVal);
 
     // Get change address
     const changeAddr = await walletHelper.changeAddress;
-
-    // Determine the UTXO used for collateral
-    const colatUtxo = await walletHelper.pickCollateral();
 
     // Start building the transaction
     const tx = new Tx();
@@ -201,9 +199,6 @@ const Home: NextPage = () => {
       new Value(minAdaVal.lovelace, new Assets([[mintProgram.mintingPolicyHash, tokens]]))
     ));
 
-    // Add the collateral utxo
-    tx.addCollateral(colatUtxo);
-
     const networkParams = new NetworkParams(
       await fetch(networkParamsUrl)
           .then(response => response.json())
@@ -225,7 +220,7 @@ const Home: NextPage = () => {
     console.log("tx before final", tx.dump());
 
     // Send any change back to the buyer
-    await tx.finalize(networkParams, changeAddr);
+    await tx.finalize(networkParams, changeAddr, utxos[1]);
 
     console.log("Verifying signature...");
     const signatures = await walletAPI.signTx(tx);
