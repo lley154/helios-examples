@@ -15,3 +15,9 @@ The book is focused on making the onboarding experience for new developers to Ca
 6) [events](/events) - block chain event monitoring example
 
 Note: Testing results are located in the [testing](/testing) directory.
+
+### Usefull links
+- Helios Github (https://github.com/Hyperion-BT/helios)
+- Helios Docs (https://github.com/Hyperion-BT/helios-book)
+- Helios Twitter (https://twitter.com/helios_lang)
+- Helios Discord (https://discord.gg/4UhUcBbU)
