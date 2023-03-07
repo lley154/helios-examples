@@ -16,7 +16,7 @@ The book is focused on making the onboarding experience for new developers to Ca
 
 Note: Testing results are located in the [testing](/testing) directory.
 
-### Usefull links
+### Useful links
 - Helios Github (https://github.com/Hyperion-BT/helios)
 - Helios Docs (https://github.com/Hyperion-BT/helios-book)
 - Helios Twitter (https://twitter.com/helios_lang)
