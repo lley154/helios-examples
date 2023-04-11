@@ -2,10 +2,9 @@
 
 ## Getting Started
 
-Install npm and then run the test suite.
+Run the test suite
 
 ```bash
-npm install
 npm test
 ```
 
