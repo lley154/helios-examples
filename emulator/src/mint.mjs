@@ -47,6 +47,7 @@ const main = async () => {
       const nftScript = await fs.readFile('./src/nft.hl', 'utf8');
       const nftProgram = Program.new(nftScript);
       nftProgram.parameters = {["TX_ID"] : utxos[0].txId.hex};
+      nftProgram.parameters = {["TX_IDX"] : utxos[0].utxoIdx};
       const nftMPH = nftProgram.compile(optimize).mintingPolicyHash;
 
       // Start building the transaction
