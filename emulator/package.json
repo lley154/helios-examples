@@ -1,0 +1,11 @@
+{
+  "name": "emulator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "mint.mjs",
+  "scripts": {
+    "test": "node ./src/mint.mjs"
+  },
+  "author": "",
+  "license": "ISC"
+}
