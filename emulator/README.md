@@ -2,14 +2,14 @@
 
 ## Getting Started
 
-First, run the development server:
+Install npm and then run the test suite.
 
 ```bash
 npm install
 npm test
+```
 
-
-## Output to console will be like the following:
+## Console output
 ```
 ~/src/helios-examples/emulator$ npm test
 
