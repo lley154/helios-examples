@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-First, run the development server:
+Install npm and then run the test suite.
 
 ```bash
 npm install
