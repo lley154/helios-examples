@@ -7,9 +7,9 @@ First, run the development server:
 ```bash
 npm install
 npm test
+```
 
-
-## Output to console will be like the following:
+## Console output
 ```
 ~/src/helios-examples/emulator$ npm test
 
