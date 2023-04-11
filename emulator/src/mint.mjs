@@ -38,8 +38,9 @@ const main = async () => {
       const utxos = await network.getUtxos(alice.address);
       console.log("************ PRE-TEST ************");
 
+      console.log("Wallet UTXOs:");
       for (const utxo of utxos) {
-        console.log("wallet txId", utxo.txId.hex + "#" + utxo.utxoIdx);
+        console.log("txId", utxo.txId.hex + "#" + utxo.utxoIdx);
         console.log("value", utxo.value.dump());
       }
 
@@ -48,7 +49,8 @@ const main = async () => {
       const nftProgram = Program.new(nftScript);
       nftProgram.parameters = {["TX_ID"] : utxos[0].txId.hex};
       nftProgram.parameters = {["TX_IDX"] : utxos[0].utxoIdx};
-      const nftMPH = nftProgram.compile(optimize).mintingPolicyHash;
+      const nftCompiledProgram = nftProgram.compile(optimize);
+      const nftMPH = nftCompiledProgram.mintingPolicyHash;
 
       // Start building the transaction
       const tx = new Tx();
@@ -57,7 +59,7 @@ const main = async () => {
       tx.addInputs(utxos);
 
       // Add the script as a witness to the transaction
-      tx.attachScript(nftProgram.compile(optimize));
+      tx.attachScript(nftCompiledProgram);
 
       // Create an empty Redeemer because we must always send a Redeemer with
       // a plutus script transaction even if we don't actually use it.
@@ -97,8 +99,9 @@ const main = async () => {
       const utxosFinal = await network.getUtxos(alice.address);
       console.log("");
       console.log("************ POST-TEST ************");
+      console.log("Wallet UTXOs:");
       for (const utxo of utxosFinal) {
-        console.log("wallet txId", utxo.txId.hex + "#" + utxo.utxoIdx);
+        console.log("txId", utxo.txId.hex + "#" + utxo.utxoIdx);
         console.log("value", utxo.value.dump());
       }
       
