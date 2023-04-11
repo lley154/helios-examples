@@ -9,7 +9,7 @@ import {
   textToBytes,
   TxOutput,
   Tx, 
-} from "./helios.mjs";
+} from "@hyperionbt/helios";
 
 /**
 * Main calling function via the command line 
