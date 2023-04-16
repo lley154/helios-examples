@@ -1,14 +1,18 @@
 {
-  "name": "emulator",
+  "name": "vitest",
   "version": "1.0.0",
   "description": "",
   "main": "mint.mjs",
   "scripts": {
-    "dev": "node ./src/mint.mjs"
+    "dev": "node ./src/mint.mjs",
+    "test": "vitest --globals"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@hyperionbt/helios": "^0.13.14"
+  },
+  "devDependencies": {
+    "vitest": "^0.30.1"
   }
 }
