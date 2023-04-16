@@ -5,7 +5,9 @@
   "main": "mint.mjs",
   "scripts": {
     "dev": "node ./src/mint.mjs",
-    "test": "vitest --globals"
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
   },
   "author": "",
   "license": "ISC",
@@ -13,6 +15,7 @@
     "@hyperionbt/helios": "^0.13.14"
   },
   "devDependencies": {
+    "@vitest/ui": "^0.30.1",
     "vitest": "^0.30.1"
   }
 }

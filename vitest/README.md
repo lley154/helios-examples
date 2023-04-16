@@ -6,29 +6,25 @@ Install npm modules and then run the test suite
 
 ```bash
 npm install
-npm run test
+npm run test:run
 ```
 
 ## Console output
 ```
-~/src/helios-examples/vitest$ npm run test
+~/src/helios-examples/vitest$ npm run test:run~/src/helios-examples/vitest$ npm run test:run
 
-> vitest@1.0.0 test
-> vitest --globals
+> vitest@1.0.0 test:run
+> vitest run
 
 
- DEV  v0.30.1 /home/lawrence/src/helios-examples/vitest
+ RUN  v0.30.1 /home/lawrence/src/helios-examples/vitest
 
- ✓ tests/mint-sc-positive.test.js (2) 951ms
- ✓ tests/mint-sc-negative-1.test.js (1) 598ms
- ✓ tests/mint-sc-negative-2.test.js (1) 361ms
+ ✓ tests/mint-onchain-negative-2.test.js (1) 967ms
+ ✓ tests/mint-onchain-positive.test.js (2) 1240ms
+ ✓ tests/mint-onchain-negative-1.test.js (1) 952ms
 
  Test Files  3 passed (3)
       Tests  4 passed (4)
-   Start at  14:51:16
-   Duration  2.67s (transform 88ms, setup 1ms, collect 282ms, tests 1.91s, environment 1ms, prepare 590ms)
-
-
- PASS  Waiting for file changes...
-       press h to show help, press q to quit
+   Start at  18:49:55
+   Duration  1.90s (transform 61ms, setup 0ms, collect 297ms, tests 3.16s, environment 1ms, prepare 439ms)
 ```
