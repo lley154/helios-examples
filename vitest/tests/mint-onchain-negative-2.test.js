@@ -97,6 +97,7 @@ describe('ThreadToken Negative Test Cases #2', () => {
             return true;
     
         } catch (err) {
+            //console.error("Mint tx failed", err);
             return false;
         }
     }

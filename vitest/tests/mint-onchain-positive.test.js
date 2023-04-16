@@ -105,7 +105,8 @@ describe('ThreadToken Positive Test Cases', () => {
             return true;
     
         } catch (err) {
-            console.error(err);
+            console.error("Mint tx failed", err);
+            return false;
         }
     }
 
