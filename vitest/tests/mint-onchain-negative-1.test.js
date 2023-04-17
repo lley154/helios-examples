@@ -96,11 +96,17 @@ describe('ThreadToken Negative Test Cases #1', () => {
 
     it('must not mint more than 1 token', async () => {
 
-        const logSpy = vi.spyOn(global.console, 'log').mockImplementation(() => { });
-        expect(await main()).toBe(false);
-        expect(logSpy).toHaveBeenCalledWith('TT1: false');
+        const logMsgs = new Set();
+        const logSpy = vi.spyOn(global.console, 'log')
+                         .mockImplementation((msg) => { logMsgs.add(msg); });
+        
+        let mainStatus = await main();
         logSpy.mockRestore();
-
+        if (mainStatus) {
+            console.log("Smart Contract Messages: ", logMsgs);
+        }
+        expect(mainStatus).toBe(false);
+        expect(logMsgs.has('TT1: false')).toBeTruthy();
     })
 })
   

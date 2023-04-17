@@ -105,25 +105,39 @@ describe('ThreadToken Positive Test Cases', () => {
             return true;
     
         } catch (err) {
-            console.error("Mint tx failed", err);
+            //console.error("Mint tx failed", err);
             return false;
         }
     }
 
     it('must only mint 1 token', async () => {
 
-        const logSpy = vi.spyOn(global.console, 'log').mockImplementation(() => { });
-        expect(await main()).toBe(true);
-        expect(logSpy).toHaveBeenCalledWith('TT1: true');
+        const logMsgs = new Set();
+        const logSpy = vi.spyOn(global.console, 'log')
+                         .mockImplementation((msg) => { logMsgs.add(msg); });
+        
+        let mainStatus = await main();
         logSpy.mockRestore();
+        if (!mainStatus) {
+            console.log("Smart Contract Messages: ", logMsgs);
+        }
+        expect(mainStatus).toBe(true);
+        expect(logMsgs.has('TT1: true')).toBeTruthy();
     })
 
     it('must contain the parameter UTXO in the inputs', async () => {
 
-        const logSpy = vi.spyOn(global.console, 'log').mockImplementation(() => { });
-        expect(await main()).toBe(true);
-        expect(logSpy).toHaveBeenCalledWith('TT2: true');
+        const logMsgs = new Set();
+        const logSpy = vi.spyOn(global.console, 'log')
+                         .mockImplementation((msg) => { logMsgs.add(msg); });
+        
+        let mainStatus = await main();
         logSpy.mockRestore();
+        if (!mainStatus) {
+            console.log("Smart Contract Messages: ", logMsgs);
+        }
+        expect(mainStatus).toBe(true);
+        expect(logMsgs.has('TT2: true')).toBeTruthy();  
     })
 })
   

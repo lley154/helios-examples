@@ -104,10 +104,17 @@ describe('ThreadToken Negative Test Cases #2', () => {
 
     it('UTXO parameter value not included in the inputs', async () => {
 
-        const logSpy = vi.spyOn(global.console, 'log').mockImplementation(() => { });
-        expect(await main()).toBe(false);
-        expect(logSpy).toHaveBeenCalledWith('TT2: false');
+        const logMsgs = new Set();
+        const logSpy = vi.spyOn(global.console, 'log')
+                         .mockImplementation((msg) => { logMsgs.add(msg); });
+        
+        let mainStatus = await main();
         logSpy.mockRestore();
+        if (mainStatus) {
+            console.log("Smart Contract Messages: ", logMsgs);
+        }
+        expect(mainStatus).toBe(false);
+        expect(logMsgs.has('TT2: false')).toBeTruthy();
     })
 })
   
