@@ -1,0 +1,28 @@
+minting nft
+
+enum Redeemer { 
+    Init 
+}
+
+const TX_ID: ByteArray = #abc123
+const txId: TxId = TxId::new(TX_ID)
+const TX_IDX: Int = 0
+const outputId: TxOutputId = TxOutputId::new(txId, TX_IDX)
+const TN: String = ""
+
+func main(_, ctx: ScriptContext) -> Bool {
+    tx: Tx = ctx.tx;
+    mph: MintingPolicyHash = ctx.get_current_minting_policy_hash();
+
+    tt_assetclass: AssetClass = AssetClass::new(
+        mph, 
+        TN.encode_utf8()
+    );
+
+    value_minted: Value = tx.minted;
+    (value_minted == Value::new(tt_assetclass, 1)).trace("NFT1: ") &&
+    tx.inputs.any((input: TxInput) -> Bool {
+                        (input.output_id == outputId).trace("NFT2: ")
+                        }
+    )
+}
