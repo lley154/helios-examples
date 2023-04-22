@@ -7,6 +7,18 @@ const nextConfig = {
       layers: true,
       topLevelAwait: true,
     };
+    config.module.rules.push({
+      test: /\.(hl|helios)$/,
+      exclude: /node_modules/,
+      use: [
+        {
+          loader: "@hyperionbt/helios-loader",
+          options: {
+            emitTypes: true // must be true when importing Helios scripts in Typescript
+          }
+        }
+      ]
+    });
     return config;
   },
 };

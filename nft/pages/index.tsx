@@ -4,6 +4,7 @@ import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
 import { useState, useEffect } from "react";
 import WalletInfo from '../components/WalletInfo';
+import Program from '../contracts/nft.hl';
 import {
   Assets,
   Address,
@@ -13,11 +14,11 @@ import {
   ConstrData,
   hexToBytes,
   NetworkParams,
-  Program,
   Value,
   TxOutput,
   Tx,
   WalletHelper} from "@hyperionbt/helios";
+ 
 
 declare global {
   interface Window {
@@ -148,35 +149,16 @@ const Home: NextPage = () => {
     // Add the UTXO as inputs
     tx.addInputs(utxos[0]);
 
-    const mintScript =`minting nft
-
-    const TX_ID: ByteArray = #` + utxos[0][0].txId.hex + `
-    const txId: TxId = TxId::new(TX_ID)
-    const outputId: TxOutputId = TxOutputId::new(txId, ` + utxos[0][0].utxoIdx + `)
-    
-    func main(_, ctx: ScriptContext) -> Bool {
-        tx: Tx = ctx.tx;
-        mph: MintingPolicyHash = ctx.get_current_minting_policy_hash();
-    
-        assetclass: AssetClass = AssetClass::new(
-            mph, 
-            "` + name + `".encode_utf8()
-        );
-        value_minted: Value = tx.minted;
-    
-        // Validator logic starts
-        (value_minted == Value::new(assetclass, 1)).trace("NFT:1 ") &&
-        tx.inputs.any((input: TxInput) -> Bool {
-                                        (input.output_id == outputId).trace("NFT2: ")
-                                        }
-        )
-    }`
+    const nftProgram = new Program();
+    nftProgram.parameters = {["TX_ID"] : utxos[0][0].txId.hex};
+    nftProgram.parameters = {["TX_IDX"] : utxos[0][0].utxoIdx};
+    nftProgram.parameters = {["TN"] : name};
 
     // Compile the helios minting script
-    const mintProgram = Program.new(mintScript).compile(optimize);
+    const nftCompiledProgram = nftProgram.compile(optimize);
 
     // Add the script as a witness to the transaction
-    tx.attachScript(mintProgram);
+    tx.attachScript(nftCompiledProgram);
 
     // Construct the NFT that we will want to send as an output
     const nftTokenName = ByteArrayData.fromString(name).toHex();
@@ -188,7 +170,7 @@ const Home: NextPage = () => {
 
     // Indicate the minting we want to include as part of this transaction
     tx.mintTokens(
-      mintProgram.mintingPolicyHash,
+      nftCompiledProgram.mintingPolicyHash,
       tokens,
       mintRedeemer
     )
@@ -196,7 +178,7 @@ const Home: NextPage = () => {
     // Construct the output and include both the minimum Ada as well as the minted NFT
     tx.addOutput(new TxOutput(
       Address.fromBech32(address),
-      new Value(minAdaVal.lovelace, new Assets([[mintProgram.mintingPolicyHash, tokens]]))
+      new Value(minAdaVal.lovelace, new Assets([[nftCompiledProgram.mintingPolicyHash, tokens]]))
     ));
 
     const networkParams = new NetworkParams(
@@ -205,7 +187,7 @@ const Home: NextPage = () => {
     )
 
     // Attached the metadata for the minting transaction
-    tx.addMetadata(721, {"map": [[mintProgram.mintingPolicyHash.hex, {"map": [[name,
+    tx.addMetadata(721, {"map": [[nftCompiledProgram.mintingPolicyHash.hex, {"map": [[name,
                                       {
                                         "map": [["name", name],
                                                 ["description", description],
