@@ -8,10 +8,10 @@ The book is focused on making the onboarding experience for new developers to Ca
 
 ### List of examples in increasing order of complexity
 1) [transfer-ada](/transfer-ada) - builds a simple transaction to transfer Ada
-2) [nft](/nft) - mints an NFT ([video](https://youtu.be/5iPqe-HNIUE)) 
+2) [nft](/nft) - mints an NFT 
 3) [emulator](/emulator) - uses the Helios emulator to mint a thread token without connecting to a real network
-4) [vitest](/vitest) - uses the Vitest testing framework to demonstrate how test your smart contract ([video](https://youtu.be/Mh6ub0mvDss))
-5) [nft-multisig](/nft-multisig) - mints a multi signature NFT ([video](https://youtu.be/CSd9ev_XH5w))
+4) [vitest](/vitest) - uses the Vitest testing framework to demonstrate how test your smart contract 
+5) [nft-multisig](/nft-multisig) - mints a multi signature NFT 
 6) [vesting](/vesting) - creates a vesting contract that locks funds until deadline
 7) [donation](/donation) - tracks donations on-chain when purchasing an eCommerce order
 8) [events](/events) - block chain event monitoring example
